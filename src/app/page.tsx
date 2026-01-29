@@ -20,7 +20,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/signup"
+                href="/next-page"
                 className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center"
               >
                 Start Practicing Free
@@ -93,7 +93,7 @@ export default function Home() {
             Start practicing today and join thousands of successful job seekers who trust Interview-Genie.
           </p>
           <Link
-            href="/signup"
+            href="/next-page"
             className="inline-flex items-center bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
           >
             Get Started for Free
