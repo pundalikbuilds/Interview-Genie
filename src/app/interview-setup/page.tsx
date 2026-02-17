@@ -36,6 +36,7 @@ export default function InterviewSetupPage() {
   };
 
   const isStep1Valid = jobRole.trim().length > 2 && skills.length > 0;
+  const canStartInterview = cameraEnabled && micEnabled;
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
@@ -111,12 +112,24 @@ export default function InterviewSetupPage() {
                   Next Step <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
-                <Link
-                  href="/interview-room"
-                  className="flex items-center gap-2 px-8 py-3 bg-neutral-900 text-white rounded-full text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-                >
-                  <PlayCircle className="h-5 w-5" /> Start Interview
-                </Link>
+                <>
+                  {canStartInterview ? (
+                    <Link
+                      href="/interview-room"
+                      className="flex items-center gap-2 px-8 py-3 bg-neutral-900 text-white rounded-full text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                    >
+                      <PlayCircle className="h-5 w-5" /> Start Interview
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="flex items-center gap-2 px-8 py-3 bg-neutral-200 text-neutral-500 rounded-full text-sm font-bold cursor-not-allowed"
+                    >
+                      <PlayCircle className="h-5 w-5" /> Start Interview
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>

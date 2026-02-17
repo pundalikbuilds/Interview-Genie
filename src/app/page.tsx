@@ -47,7 +47,7 @@ export default function Home() {
             </p>
 
             <div className="flex gap-4">
-              <Link href="/next-page" className="group px-8 py-4 bg-neutral-900 text-white rounded-none flex items-center gap-3 transition-all hover:pl-10">
+              <Link href="/interview-setup" className="group px-8 py-4 bg-neutral-900 text-white rounded-none flex items-center gap-3 transition-all hover:pl-10">
                 Start Mock Interview
                 <ArrowRight className="w-4 h-4" />
               </Link>

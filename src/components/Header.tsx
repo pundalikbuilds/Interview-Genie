@@ -29,7 +29,7 @@ export default function Header() {
               Sign In
             </Link>
             <Link
-              href="/next-page"
+              href="/interview-setup"
               className="bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all duration-200"
             >
               Get Started
@@ -82,7 +82,7 @@ export default function Header() {
                   Sign In
                 </Link>
                 <Link
-                  href="/next-page"
+                  href="/interview-setup"
                   className="block px-3 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all duration-200 mt-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
