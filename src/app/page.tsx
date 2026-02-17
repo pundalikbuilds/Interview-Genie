@@ -178,12 +178,10 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4 h-auto md:h-[600px]">
             {/* Large Feature Card */}
             <div className="md:col-span-2 md:row-span-2 bg-neutral-100 p-8 lg:p-12 relative group overflow-hidden">
-              <div className="absolute top-8 right-8 p-3 bg-white rounded-full">
-                <Chip className="w-6 h-6" />
-              </div>
+              
               <div className="relative z-10 h-full flex flex-col justify-end">
-                <h3 className="text-3xl font-bold tracking-tight mb-4">Role‑Specific Practice</h3>
-                <p className="text-neutral-600 max-w-md">Choose your role and difficulty to get tailored questions and feedback.</p>
+                <h3 className="text-3xl font-bold tracking-tight mb-4">Role-Specific Practice</h3>
+                <p className="text-neutral-600 max-w-md">Personalized, adaptive questions based on job role, performance, and experience level.</p>
               </div>
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 group-hover:scale-105 transition-transform duration-700"></div>
             </div>
@@ -193,16 +191,15 @@ export default function Home() {
               <div className="absolute inset-0 bg-neutral-800 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out"></div>
               <div className="relative z-10">
                 <h3 className="text-xl font-bold mb-2">Instant Feedback</h3>
-                <p className="text-neutral-400 text-sm">See strengths, gaps, and tips after every answer.</p>
+                <p className="text-neutral-400 text-sm">Real-time NLP scoring, semantic analysis, and improvement insights after every answer.</p>
               </div>
             </div>
 
             {/* CTA Card */}
             <div className="bg-neutral-100 p-8 relative group cursor-pointer border border-neutral-200">
-              <ArrowRight className="absolute top-8 right-8 w-6 h-6 -rotate-45 group-hover:rotate-0 transition-transform" />
               <div className="mt-20">
-                <h3 className="text-xl font-bold">Start Practicing</h3>
-                <p className="text-sm text-neutral-500 mt-2">Launch a mock interview in minutes.</p>
+                <h3 className="text-xl font-bold">Final AI Review</h3>
+                <p className="text-sm text-neutral-500 mt-2">Comprehensive performance report with strengths, gaps, and recommendations.</p>
               </div>
             </div>
           </div>

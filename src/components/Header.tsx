@@ -13,9 +13,6 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-900 text-xs font-bold">
-              IG
-            </div>
             <span className="text-xl font-bold text-slate-900">Interview-Genie</span>
           </Link>
 

@@ -157,24 +157,14 @@ export default function CameraPreview({
 
       {/* Status Indicators */}
       <div className="space-y-2">
-        {cameraAvailable ? (
-          <div className="flex items-center gap-2 text-xs text-green-700 px-3 py-2 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle className="h-4 w-4" />
-            <span>Camera detected and ready</span>
-          </div>
-        ) : (
+        {!cameraAvailable && (
           <div className="flex items-center gap-2 text-xs text-orange-700 px-3 py-2 bg-orange-50 rounded-lg border border-orange-200">
             <AlertCircle className="h-4 w-4" />
             <span>Camera not found. Check permissions.</span>
           </div>
         )}
 
-        {micAvailable ? (
-          <div className="flex items-center gap-2 text-xs text-green-700 px-3 py-2 bg-green-50 rounded-lg border border-green-200">
-            <CheckCircle className="h-4 w-4" />
-            <span>Microphone detected and ready</span>
-          </div>
-        ) : (
+        {!micAvailable && (
           <div className="flex items-center gap-2 text-xs text-orange-700 px-3 py-2 bg-orange-50 rounded-lg border border-orange-200">
             <AlertCircle className="h-4 w-4" />
             <span>Microphone not found. Check permissions.</span>

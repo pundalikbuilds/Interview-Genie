@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Activity } from 'lucide-react';
 
 interface DifficultySelectorProps {
@@ -12,8 +12,6 @@ export default function DifficultySelector({
   value,
   onChange,
 }: DifficultySelectorProps) {
-  const [description, setDescription] = useState('');
-
   const difficulties = [
     {
       id: 'easy',
@@ -32,20 +30,12 @@ export default function DifficultySelector({
     },
   ] as const;
 
-  useEffect(() => {
-    const selected = difficulties.find((d) => d.id === value);
-    setDescription(selected?.desc || '');
-  }, [value]);
-
   return (
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700">
           Interview Difficulty
         </label>
-        <p className="text-xs text-gray-500 mt-1">
-          Choose your experience level to receive appropriately challenging questions
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -86,17 +76,6 @@ export default function DifficultySelector({
         })}
       </div>
 
-      {/* Dynamic Description */}
-      <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-900">{description}</p>
-      </div>
-
-      {/* Difficulty Scale */}
-      <div className="flex items-center justify-between px-2">
-        <span className="text-xs font-medium text-gray-600">Easier</span>
-        <div className="flex-1 mx-3 h-1 bg-gradient-to-r from-green-400 via-yellow-400 to-red-500 rounded-full" />
-        <span className="text-xs font-medium text-gray-600">Harder</span>
-      </div>
     </div>
   );
 }

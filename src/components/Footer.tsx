@@ -10,9 +10,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="bg-slate-900 p-2 rounded-lg">
-                <Zap className="h-6 w-6 text-white" />
-              </div>
+              
               <span className="text-xl font-bold text-slate-900">Interview-Genie</span>
             </div>
             <p className="text-slate-600">
