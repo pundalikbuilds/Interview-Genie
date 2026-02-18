@@ -44,7 +44,7 @@ export default function Navigation() {
               Sign In
             </Link>
             <Link
-              href="/signup"
+              href="/interview-setup"
               className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
             >
               Get Started
@@ -103,7 +103,7 @@ export default function Navigation() {
                   Sign In
                 </Link>
                 <Link
-                  href="/signup"
+                  href="/interview-setup"
                   className="block px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 mt-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
