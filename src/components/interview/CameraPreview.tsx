@@ -33,6 +33,12 @@ export default function CameraPreview({
           videoRef.current.srcObject = stream;
         }
       } catch (error) {
+        const err = error as DOMException;
+        if (err.name === "NotAllowedError") {
+          console.warn("User denied camera permissions");
+        } else if (err.name === "NotFoundError") {
+          console.warn("No camera device found");
+        }
         setCameraAvailable(false);
       }
     };
@@ -67,7 +73,11 @@ export default function CameraPreview({
         const hasMic = devices.some((device) => device.kind === 'audioinput');
         setMicAvailable(hasMic);
       })
-      .catch(() => {
+      .catch((error) => {
+        const err = error as DOMException;
+        if (err.name === "NotAllowedError") {
+          console.warn("Permission to enumerate devices denied");
+        }
         setMicAvailable(false);
       });
   }, []);
