@@ -1,5 +1,5 @@
 "use client";
-
+import { Rnd } from "react-rnd";
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -42,6 +42,8 @@ export default function InterviewRoom() {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [emotion, setEmotion] = useState("");
+  const [confidence, setConfidence] = useState(0);
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,6 +52,48 @@ export default function InterviewRoom() {
   const scriptStartedRef = useRef(false);
   const scriptTimeoutsRef = useRef<number[]>([]);
 
+  // EMOTION DETECTION
+  const captureAndSendFrame = async () => {
+  if (!videoRef.current) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = videoRef.current.videoWidth;
+  canvas.height = videoRef.current.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.drawImage(videoRef.current, 0, 0);
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg")
+  );
+
+  if (!blob) return;
+
+  const formData = new FormData();
+  formData.append("file", blob);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/predict", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    setEmotion(data.emotion);
+    setConfidence(data.confidence);
+  } catch (err) {
+    console.error("Prediction error:", err);
+  }
+};
+useEffect(() => {
+  const interval = setInterval(() => {
+    captureAndSendFrame();
+  }, 2000); // every 2 seconds
+
+  return () => clearInterval(interval);
+}, []);
   // CAMERA
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -174,7 +218,7 @@ export default function InterviewRoom() {
     <div className="flex h-screen w-full bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900 text-white overflow-hidden font-sans">
       
       {/* LEFT SIDE */}
-      <div className="relative flex-1 p-6">
+      <div className="relative flex-1">
 
         {/* Top Bar */}
         <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
@@ -194,25 +238,46 @@ export default function InterviewRoom() {
         </div>
 
         {/* WEBCAM (40% bottom-left) */}
-        <div className="absolute bottom-8 left-8 w-[40%] aspect-video rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-2xl z-10">
-          {cameraError === null ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover transform scale-x-[-1]"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-900 to-neutral-950">
-              <div className="w-20 h-20 rounded-full bg-neutral-800 flex items-center justify-center mb-3 border border-neutral-700">
-                <User className="w-8 h-8 text-neutral-500" />
-              </div>
-              <p className="text-red-400 text-sm font-medium">{cameraError}</p>
-              <p className="text-neutral-500 text-xs mt-1">Close other apps using camera and refresh</p>
-            </div>
-          )}
-        </div>
+<Rnd
+  default={{
+    x: 20,
+    y: window.innerHeight - 300,
+    width: 380,
+    height: 220,
+  }}
+  minWidth={250}
+  minHeight={150}
+  bounds="window"
+  className="z-40"
+>
+  <div className="w-full h-full rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-2xl relative">
+
+    {cameraError === null ? (
+      <>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover transform scale-x-[-1]"
+        />
+
+        {emotion && (
+          <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm shadow-lg">
+            <div className="font-semibold">Emotion: {emotion}</div>
+            <div>Confidence: {(confidence * 100).toFixed(1)}%</div>
+          </div>
+        )}
+      </>
+    ) : (
+      <div className="w-full h-full flex items-center justify-center text-red-400">
+        {cameraError}
+      </div>
+    )}
+
+  </div>
+</Rnd>
+        
 
         {/* End Call Button */}
         <div className="absolute bottom-8 right-8 z-20">
