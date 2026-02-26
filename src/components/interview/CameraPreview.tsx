@@ -43,7 +43,11 @@ export default function CameraPreview({ onStreamReady }: CameraPreviewProps) {
   };
 
   const toggleCamera = () => {
-    isCameraOn ? stopCamera() : startCamera();
+    if (isCameraOn) {
+      stopCamera();
+    } else {
+      startCamera();
+    }
   };
 
   const toggleMic = () => {
@@ -59,7 +63,6 @@ export default function CameraPreview({ onStreamReady }: CameraPreviewProps) {
     return () => {
       stopCamera();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -43,7 +43,7 @@ function InterviewRoomContent() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(''));
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes per question
-  const [isTimerRunning, setIsTimerRunning] = useState(true);
+  const [isTimerRunning] = useState(true);
 
   // Format seconds as mm:ss
   const formatTime = (s: number) => {
