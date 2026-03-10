@@ -27,25 +27,25 @@ export default function JobRoleInput({ value, onChange }: JobRoleInputProps) {
   }, []);
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+    <div className="space-y-3">
+      <label className="block text-sm font-bold text-neutral-900">
         Target Role
       </label>
-      <p className="text-xs text-gray-500">
-        We'll personalize your interview questions based on the role you're applying for
+      <p className="text-sm text-neutral-500">
+        What position are you interviewing for?
       </p>
 
       <div className="relative mt-3">
         <div
           className={`relative flex items-center border-2 transition-all duration-300 ${
             isFocused
-              ? 'border-blue-500 bg-blue-50/50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
-          } rounded-xl px-4 py-3`}
+              ? 'border-neutral-900 bg-neutral-50'
+              : 'border-neutral-200 bg-white hover:border-neutral-300'
+          } rounded-xl px-4 py-3.5`}
         >
           <Briefcase
             className={`h-5 w-5 transition-colors ${
-              isFocused ? 'text-blue-600' : 'text-gray-400'
+              isFocused ? 'text-neutral-900' : 'text-neutral-400'
             }`}
           />
           <input
@@ -56,13 +56,13 @@ export default function JobRoleInput({ value, onChange }: JobRoleInputProps) {
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             placeholder={placeholder}
-            className="ml-3 flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-400 text-base"
+            className="ml-3 flex-1 bg-transparent outline-none text-neutral-900 placeholder-neutral-400 text-base font-medium"
           />
         </div>
 
         {value && (
-          <div className="absolute top-full mt-2 left-0 right-0 text-xs text-gray-500 px-1">
-            <span className="inline-block px-2 py-1 bg-blue-50 text-blue-700 rounded">
+          <div className="absolute top-full mt-2 left-0 right-0 text-xs text-neutral-500 px-1">
+            <span className="inline-block px-2 py-1 bg-neutral-100 text-neutral-700 rounded">
               Ready to personalize
             </span>
           </div>

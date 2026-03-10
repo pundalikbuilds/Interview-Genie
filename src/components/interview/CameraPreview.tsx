@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Mic, AlertCircle, CheckCircle } from 'lucide-react';
+import { Camera, Mic, AlertCircle } from 'lucide-react';
 
 interface CameraPreviewProps {
   cameraEnabled: boolean;
@@ -83,16 +83,16 @@ export default function CameraPreview({
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-medium text-gray-700">Setup Check</h3>
-        <p className="text-xs text-gray-500 mt-1">
-          Enable your camera and microphone for the interview
+        <h3 className="text-sm font-bold text-neutral-900">System Check</h3>
+        <p className="text-sm text-neutral-500 mt-1">
+          Ensure you are visible and audible before starting.
         </p>
       </div>
 
       {/* Video Preview Container */}
-      <div className="relative aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden border-2 border-gray-700 shadow-lg">
+      <div className="relative aspect-video bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl overflow-hidden border border-neutral-700 shadow-xl">
         {cameraEnabled && cameraAvailable ? (
           <>
             <video
@@ -102,18 +102,18 @@ export default function CameraPreview({
               muted
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-green-500/90 text-white rounded-full text-xs font-medium backdrop-blur-sm">
+            <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-md text-white rounded-lg text-xs font-bold uppercase tracking-widest border border-white/10">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              Camera On
+              Live
             </div>
           </>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center">
-            <div className="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mb-4">
-              <Camera className="h-8 w-8 text-gray-500" />
+          <div className="w-full h-full flex flex-col items-center justify-center text-neutral-500 bg-gradient-to-b from-neutral-800 to-neutral-900">
+            <div className="w-16 h-16 bg-neutral-800/60 rounded-full flex items-center justify-center mb-4 border border-neutral-700">
+              <Camera className="h-6 w-6" />
             </div>
-            <p className="text-gray-400 text-sm font-medium">Camera Off</p>
-            <p className="text-gray-500 text-xs mt-1">Enable camera to continue</p>
+            <p className="text-sm font-medium">Camera is disabled</p>
+            <p className="text-xs mt-1">Enable camera to continue</p>
           </div>
         )}
       </div>
@@ -128,10 +128,10 @@ export default function CameraPreview({
             }
           }}
           disabled={!cameraAvailable}
-          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+          className={`flex items-center justify-center gap-2 px-4 py-4 rounded-xl font-bold transition-all duration-300 ${
             cameraEnabled
-              ? 'bg-green-50 border-2 border-green-400 text-green-700 hover:bg-green-100'
-              : 'bg-gray-100 border-2 border-gray-300 text-gray-600 hover:bg-gray-200'
+              ? 'bg-neutral-900 border-2 border-neutral-900 text-white'
+              : 'bg-white border-2 border-neutral-200 text-neutral-600 hover:border-neutral-300'
           } ${!cameraAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <Camera
@@ -139,7 +139,7 @@ export default function CameraPreview({
               cameraEnabled ? 'scale-110' : ''
             }`}
           />
-          <span className="text-sm">{cameraEnabled ? 'Camera On' : 'Camera Off'}</span>
+          <span className="text-sm">{cameraEnabled ? 'Camera On' : 'Enable Camera'}</span>
         </button>
 
         {/* Microphone Toggle */}
@@ -150,10 +150,10 @@ export default function CameraPreview({
             }
           }}
           disabled={!micAvailable}
-          className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-300 ${
+          className={`flex items-center justify-center gap-2 px-4 py-4 rounded-xl font-bold transition-all duration-300 ${
             micEnabled
-              ? 'bg-green-50 border-2 border-green-400 text-green-700 hover:bg-green-100'
-              : 'bg-gray-100 border-2 border-gray-300 text-gray-600 hover:bg-gray-200'
+              ? 'bg-neutral-900 border-2 border-neutral-900 text-white'
+              : 'bg-white border-2 border-neutral-200 text-neutral-600 hover:border-neutral-300'
           } ${!micAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <Mic
@@ -161,23 +161,23 @@ export default function CameraPreview({
               micEnabled ? 'scale-110' : ''
             }`}
           />
-          <span className="text-sm">{micEnabled ? 'Mic On' : 'Mic Off'}</span>
+          <span className="text-sm">{micEnabled ? 'Mic On' : 'Enable Mic'}</span>
         </button>
       </div>
 
       {/* Status Indicators */}
       <div className="space-y-2">
         {!cameraAvailable && (
-          <div className="flex items-center gap-2 text-xs text-orange-700 px-3 py-2 bg-orange-50 rounded-lg border border-orange-200">
+          <div className="flex items-center gap-2 text-xs font-medium text-amber-700 px-4 py-3 bg-amber-50 rounded-lg border border-amber-200">
             <AlertCircle className="h-4 w-4" />
-            <span>Camera not found. Check permissions.</span>
+            <span>Camera not found or permission denied.</span>
           </div>
         )}
 
         {!micAvailable && (
-          <div className="flex items-center gap-2 text-xs text-orange-700 px-3 py-2 bg-orange-50 rounded-lg border border-orange-200">
+          <div className="flex items-center gap-2 text-xs font-medium text-amber-700 px-4 py-3 bg-amber-50 rounded-lg border border-amber-200">
             <AlertCircle className="h-4 w-4" />
-            <span>Microphone not found. Check permissions.</span>
+            <span>Microphone not found or permission denied.</span>
           </div>
         )}
       </div>

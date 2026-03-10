@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import { Activity } from 'lucide-react';
-
 interface DifficultySelectorProps {
   value: 'easy' | 'intermediate' | 'hard';
   onChange: (value: 'easy' | 'intermediate' | 'hard') => void;
@@ -16,66 +13,77 @@ export default function DifficultySelector({
     {
       id: 'easy',
       label: 'Easy',
-      desc: 'Fundamentals and gentle warm-up questions',
     },
     {
       id: 'intermediate',
       label: 'Intermediate',
-      desc: 'Real-world scenarios with moderate complexity',
     },
     {
       id: 'hard',
       label: 'Hard',
-      desc: 'Challenging topics and deeper technical reasoning',
     },
   ] as const;
+
+  const selectedIndex = difficulties.findIndex((difficulty) => difficulty.id === value);
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-bold text-neutral-900 mb-2">
           Interview Difficulty
         </label>
+        <p className="text-sm text-gray-600">Move the point on the bar to set your interview level.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {difficulties.map((difficulty) => {
-          const isSelected = value === difficulty.id;
-          return (
-            <button
-              key={difficulty.id}
-              onClick={() => onChange(difficulty.id)}
-              className={`relative group px-4 py-4 rounded-xl border-2 transition-all duration-300 ${
-                isSelected
-                  ? 'border-blue-500 bg-blue-50/50 shadow-md'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              {/* Gradient background on hover for unselected */}
-              {!isSelected && (
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-opacity pointer-events-none" />
-              )}
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div
+          role="radiogroup"
+          aria-label="Interview difficulty"
+          className="relative rounded-xl bg-gray-100 border border-gray-200 p-1"
+        >
+          <div
+            className="absolute top-1 bottom-1 rounded-lg bg-white border border-neutral-300 shadow-sm transition-all duration-300"
+            style={{
+              left: `calc(${selectedIndex} * (100% / 3) + 0.25rem)`,
+              width: 'calc(33.333% - 0.5rem)',
+            }}
+          />
 
-              <div className="relative flex flex-col items-start">
-                <span
-                  className={`text-sm font-semibold transition-colors ${
-                    isSelected ? 'text-blue-700' : 'text-gray-700'
+          <div className="relative grid grid-cols-3 gap-1">
+            {difficulties.map((difficulty) => {
+              const isSelected = value === difficulty.id;
+
+              return (
+                <button
+                  key={difficulty.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => onChange(difficulty.id)}
+                  className={`z-10 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                    isSelected ? 'text-neutral-900' : 'text-gray-500 hover:text-neutral-800'
                   }`}
                 >
                   {difficulty.label}
-                </span>
-                {isSelected && (
-                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded-full">
-                    <Activity className="h-3 w-3" />
-                    <span className="text-xs font-medium">Selected</span>
-                  </div>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                </button>
+              );
+            })}
+          </div>
 
+          <div className="mt-2 grid grid-cols-3 px-2">
+            {difficulties.map((difficulty) => (
+              <div key={difficulty.id} className="flex justify-center">
+                <div
+                  className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                    value === difficulty.id ? 'bg-neutral-900' : 'bg-gray-300'
+                  }`}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

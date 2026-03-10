@@ -46,9 +46,11 @@ export default function InterviewRoom() {
   const [confidence, setConfidence] = useState(0);
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [isClientMounted, setIsClientMounted] = useState(false);
+  const [isSwapped, setIsSwapped] = useState(false);
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const transcriptIdRef = useRef(0);
   const scriptStartedRef = useRef(false);
@@ -126,6 +128,7 @@ useEffect(() => {
           video: { facingMode: "user" },
           audio: true,
         });
+        streamRef.current = stream;
         if (videoRef.current && mounted) {
           videoRef.current.srcObject = stream;
           // Ensure video plays
@@ -156,8 +159,9 @@ useEffect(() => {
 
     return () => {
       mounted = false;
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       }
     };
   }, []);
@@ -239,8 +243,107 @@ useEffect(() => {
     setIsClientMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => undefined);
+    }
+  }, [isSwapped]);
+
+  const renderCameraView = (isMain: boolean) => (
+    <div className="relative h-full w-full bg-neutral-900 flex items-center justify-center">
+      {cameraError === null ? (
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover transform scale-x-[-1]"
+          />
+
+          {emotion && (
+            <div
+              className={`absolute bg-black/65 backdrop-blur-md text-white rounded-xl shadow-lg border border-white/10 ${
+                isMain ? 'bottom-6 left-6 px-4 py-2 text-sm' : 'bottom-4 left-4 px-3 py-1.5 text-xs'
+              }`}
+            >
+              <div className="font-semibold capitalize">{emotion}</div>
+              <div className="text-xs text-neutral-300">{(confidence * 100).toFixed(1)}% confidence</div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 bg-neutral-900">
+          <User className="mb-3 h-8 w-8 opacity-50" />
+          <span className="text-sm">{cameraError}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderAiView = (isMain: boolean) => (
+    <div
+      className={`relative flex h-full w-full flex-col items-center justify-center transition-transform duration-500 ${
+        isMain ? 'scale-100' : 'scale-75'
+      }`}
+    >
+      {isAiSpeaking && (
+        <motion.div
+          initial={{ opacity: 0.3, scale: 0.9 }}
+          animate={{ opacity: [0.2, 0.55, 0.2], scale: [1, 1.12, 1] }}
+          transition={{ repeat: Infinity, duration: 2.2 }}
+          className="absolute -inset-14 rounded-full bg-neutral-500/20 blur-3xl"
+        />
+      )}
+
+      <div className="relative flex h-56 w-56 items-center justify-center rounded-full border border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-900 shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 18, ease: 'linear' }}
+          className="absolute inset-3 rounded-full border border-dashed border-neutral-600/70"
+        />
+        <motion.div
+          animate={{ scale: isAiSpeaking ? [1, 1.05, 1] : 1 }}
+          transition={{ repeat: Infinity, duration: 1.8 }}
+          className={`relative z-10 flex h-32 w-32 flex-col items-center justify-center rounded-full border transition-colors duration-500 ${
+            isAiSpeaking
+              ? 'border-neutral-400 bg-neutral-700/40 shadow-[0_0_40px_rgba(255,255,255,0.08)]'
+              : 'border-neutral-700 bg-neutral-800/80'
+          }`}
+        >
+          <Bot className={`mb-2 h-11 w-11 ${isAiSpeaking ? 'text-white' : 'text-neutral-400'}`} />
+          <div className="flex h-4 items-end gap-1">
+            {[1, 2, 3, 4].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ height: isAiSpeaking ? ['25%', '100%', '25%'] : '25%' }}
+                transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.1 }}
+                className={`w-1 rounded-full ${isAiSpeaking ? 'bg-white' : 'bg-neutral-600'}`}
+              />
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      {isMain && (
+        <div className="mt-6 rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur-md">
+          <span className="text-xs font-bold uppercase tracking-[0.24em] text-neutral-300">
+            AI Interviewer
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex h-screen w-full bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900 text-white overflow-hidden font-sans">
+    <div className="min-h-screen w-full bg-neutral-950 text-white overflow-hidden font-sans">
+      <div className="absolute inset-0 pointer-events-none opacity-40">
+        <div className="absolute left-[12%] top-[10%] h-80 w-80 rounded-full bg-neutral-700/20 blur-3xl" />
+        <div className="absolute right-[10%] bottom-[8%] h-96 w-96 rounded-full bg-neutral-800/30 blur-3xl" />
+      </div>
+
+      <div className="relative grid min-h-screen grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(0,1fr)_420px] lg:p-6">
       {predictionError && (
         <div className="absolute right-4 top-4 z-50 rounded-md bg-red-500/90 px-3 py-2 text-xs text-white shadow-lg">
           Emotion API unavailable: {predictionError}
@@ -248,18 +351,20 @@ useEffect(() => {
       )}
       
       {/* LEFT SIDE */}
-      <div className="relative flex-1">
+      <div className="relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 shadow-2xl lg:min-h-[calc(100vh-3rem)]">
+
+        <div className="absolute inset-0 pointer-events-none opacity-[0.06] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:28px_28px]" />
 
         {/* Top Bar */}
         <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
-          <div className="flex items-center gap-2 bg-neutral-900/50 backdrop-blur-md px-4 py-2 rounded-full border border-neutral-800">
+          <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-xs font-bold tracking-widest uppercase">
               Live Recording
             </span>
           </div>
 
-          <div className="bg-neutral-900/50 backdrop-blur-md px-4 py-2 rounded-full border border-neutral-800 flex items-center gap-2">
+          <div className="bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
             <Clock className="w-4 h-4 text-neutral-400" />
             <span className="font-mono text-sm font-medium">
               {formatTime(timeLeft)}
@@ -267,43 +372,40 @@ useEffect(() => {
           </div>
         </div>
 
+        <div
+          className="absolute inset-8 top-24 bottom-28 z-10 flex items-center justify-center rounded-3xl"
+          onDoubleClick={() => setIsSwapped((prev) => !prev)}
+          title="Double-click to swap"
+        >
+          {isSwapped ? (
+            <div className="h-full w-full overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+              {renderCameraView(true)}
+            </div>
+          ) : (
+            renderAiView(true)
+          )}
+        </div>
+
         {/* WEBCAM (40% bottom-left) */}
         {isClientMounted && (
           <Rnd
             default={{
-              x: 20,
-              y: window.innerHeight - 300,
-              width: 380,
-              height: 220,
+              x: 28,
+              y: typeof window !== 'undefined' ? window.innerHeight - 290 : 0,
+              width: 340,
+              height: 210,
             }}
             minWidth={250}
             minHeight={150}
             bounds="window"
             className="z-40"
           >
-            <div className="w-full h-full rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-2xl relative">
-              {cameraError === null ? (
-                <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover transform scale-x-[-1]"
-                  />
-
-                  {emotion && (
-                    <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm shadow-lg">
-                      <div className="font-semibold">Emotion: {emotion}</div>
-                      <div>Confidence: {(confidence * 100).toFixed(1)}%</div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-red-400">
-                  {cameraError}
-                </div>
-              )}
+            <div
+              className="w-full h-full rounded-3xl overflow-hidden bg-neutral-900 border border-white/10 shadow-2xl relative backdrop-blur-md"
+              onDoubleClick={() => setIsSwapped((prev) => !prev)}
+              title="Double-click to swap"
+            >
+              {isSwapped ? renderAiView(false) : renderCameraView(false)}
             </div>
           </Rnd>
         )}
@@ -313,7 +415,7 @@ useEffect(() => {
         <div className="absolute bottom-8 right-8 z-20">
           <button
             onClick={handleEndCall}
-            className="px-6 py-4 rounded-xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 text-white shadow-xl"
+            className="px-6 py-4 rounded-2xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 text-white shadow-xl"
           >
             <PhoneOff className="w-5 h-5" />
             End Call
@@ -328,10 +430,10 @@ useEffect(() => {
         initial={{ x: 400 }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 200 }}
-        className="w-[500px] bg-white text-neutral-900 flex flex-col rounded-l-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-20 my-4"
+        className="z-20 flex min-h-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white text-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:min-h-[calc(100vh-3rem)]"
 
       >
-        <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-white rounded-tl-3xl">
+        <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-indigo-600" />
             <h2 className="font-bold text-lg tracking-tight">
@@ -370,7 +472,7 @@ useEffect(() => {
           <div ref={transcriptEndRef} />
         </div>
 
-        <div className="p-4 bg-white border-t border-neutral-100 rounded-bl-3xl">
+        <div className="p-4 bg-white border-t border-neutral-100">
           <div className="flex items-center gap-3 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-500">
             {isAiSpeaking ? (
               <>
@@ -386,47 +488,7 @@ useEffect(() => {
           </div>
         </div>
       </motion.div>
-      {/* AI ASSISTANT - TRUE SCREEN CENTER */}
-<div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-  <div className="relative">
-
-    {isAiSpeaking && (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: [0.4, 0.9, 0.4], scale: [1, 1.15, 1] }}
-        transition={{ repeat: Infinity, duration: 2 }}
-        className="absolute -inset-10 bg-indigo-500/30 rounded-full blur-3xl"
-      />
-    )}
-
-    <div className="relative w-56 h-56 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 flex flex-col items-center justify-center shadow-2xl border border-indigo-400/30">
-
-      <Bot className="w-16 h-16 text-white mb-2" />
-
-      <span className="text-sm font-bold tracking-widest uppercase text-white/80">
-        AI Assistant
-      </span>
-
-      {isAiSpeaking && (
-        <div className="absolute bottom-10 flex gap-1 items-end h-5">
-          {[1, 2, 3].map((i) => (
-            <motion.div
-              key={i}
-              animate={{ height: ["40%", "100%", "40%"] }}
-              transition={{
-                repeat: Infinity,
-                duration: 0.8,
-                delay: i * 0.15,
-              }}
-              className="w-1 bg-white rounded-full"
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-</div>
-
+      </div>
     </div>
   );
 }

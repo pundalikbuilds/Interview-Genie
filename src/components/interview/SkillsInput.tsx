@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { X, Plus } from 'lucide-react';
 
 interface SkillsInputProps {
@@ -50,11 +51,11 @@ export default function SkillsInput({ skills, onChange }: SkillsInputProps) {
   };
 
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+    <div className="space-y-3">
+      <label className="block text-sm font-bold text-neutral-900">
         Key Skills
       </label>
-      <p className="text-xs text-gray-500">
+      <p className="text-sm text-neutral-500">
         List the skills you want to be tested on. Press Enter to add each skill.
       </p>
 
@@ -62,30 +63,35 @@ export default function SkillsInput({ skills, onChange }: SkillsInputProps) {
         <div
           className={`border-2 transition-all duration-300 rounded-xl px-4 py-3 ${
             isFocused
-              ? 'border-blue-500 bg-blue-50/50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
+              ? 'border-neutral-900 bg-neutral-50'
+              : 'border-neutral-200 bg-white hover:border-neutral-300'
           }`}
         >
           <div className="flex flex-wrap gap-2 mb-2">
-            {skills.map((skill) => (
-              <div
-                key={skill}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-200 group hover:shadow-sm transition-shadow"
-              >
-                <span>{skill}</span>
-                <button
-                  onClick={() => handleRemoveSkill(skill)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-blue-900"
-                  aria-label={`Remove ${skill}`}
+            <AnimatePresence>
+              {skills.map((skill) => (
+                <motion.div
+                  key={skill}
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  className="inline-flex items-center gap-1.5 bg-neutral-900 text-white px-3 py-1.5 rounded-lg text-sm font-medium group"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+                  <span>{skill}</span>
+                  <button
+                    onClick={() => handleRemoveSkill(skill)}
+                    className="text-neutral-400 hover:text-white transition-colors"
+                    aria-label={`Remove ${skill}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
 
           <div className="flex items-center gap-2">
-            <Plus className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <Plus className="h-5 w-5 text-neutral-400 flex-shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -95,15 +101,15 @@ export default function SkillsInput({ skills, onChange }: SkillsInputProps) {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder="Type a skill and press Enter..."
-              className="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-400 text-base py-1"
+              className="flex-1 bg-transparent outline-none text-neutral-900 placeholder-neutral-400 text-base py-1 font-medium"
             />
           </div>
         </div>
 
         {/* Suggestions */}
         {isFocused && availableSuggestions.length > 0 && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs font-medium text-gray-600 mb-2">Suggestions</p>
+          <div className="mt-3 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+            <p className="text-xs font-medium text-neutral-600 mb-2">Suggestions</p>
             <div className="flex flex-wrap gap-2">
               {availableSuggestions.slice(0, 5).map((suggestion) => (
                 <button
@@ -113,7 +119,7 @@ export default function SkillsInput({ skills, onChange }: SkillsInputProps) {
                     e.preventDefault();
                     handleAddSkill(suggestion);
                   }}
-                  className="px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all"
+                  className="px-3 py-1.5 text-sm text-neutral-600 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-100 hover:border-neutral-400 hover:text-neutral-900 transition-all"
                 >
                   + {suggestion}
                 </button>
@@ -124,7 +130,7 @@ export default function SkillsInput({ skills, onChange }: SkillsInputProps) {
       </div>
 
       {skills.length > 0 && (
-        <p className="text-xs text-blue-600">
+        <p className="text-xs text-neutral-700">
           {skills.length} skill{skills.length !== 1 ? 's' : ''} selected
         </p>
       )}

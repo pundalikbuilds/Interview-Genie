@@ -3,44 +3,83 @@
 import Link from 'next/link';
 import React, { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Bot, CheckCircle, Mic2, PlayCircle, ArrowRight, Mic, Camera, Activity, Code2, LineChart, FileText } from 'lucide-react';
+import { 
+  Bot, CheckCircle, Mic2, PlayCircle, ArrowRight, 
+  Mic, Camera, FileText, Activity, Code2, LineChart 
+} from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-function SpotlightCard({ children, className = '' }: { children: React.ReactNode, className?: string }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [spotlight, setSpotlight] = useState({ x: 0, y: 0, opacity: 0 });
+// ==========================================
+// EXPANDABLE SPOTLIGHT CARD
+// ==========================================
+function ExpandableFeatureCard({ 
+  children, 
+  className = '', 
+  index, 
+  hoveredIndex, 
+  onHover 
+}: { 
+  children: React.ReactNode, 
+  className?: string,
+  index: number,
+  hoveredIndex: number | null,
+  onHover: () => void
+}) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [spotlightOpacity, setSpotlightOpacity] = useState(0);
 
-  const onMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    setSpotlight({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-      opacity: 1
-    });
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!divRef.current) return;
+    const rect = divRef.current.getBoundingClientRect();
+    setPosition({ x: event.clientX - rect.left, y: event.clientY - rect.top });
   };
 
+  // Determine state based on which card is hovered
+  const isHovered = hoveredIndex === index;
+  const isOthersHovered = hoveredIndex !== null && hoveredIndex !== index;
+
   return (
-    <div
-      ref={cardRef}
-      onMouseMove={onMouseMove}
-      onMouseEnter={() => setSpotlight((prev) => ({ ...prev, opacity: 1 }))}
-      onMouseLeave={() => setSpotlight((prev) => ({ ...prev, opacity: 0 }))}
-      className={`relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-7 transition-colors hover:bg-neutral-50 ${className}`}
+    <motion.div
+      ref={divRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => {
+        setSpotlightOpacity(1);
+        onHover();
+      }}
+      onMouseLeave={() => setSpotlightOpacity(0)}
+      animate={{
+        scale: isHovered ? 1.08 : isOthersHovered ? 0.95 : 1,
+        filter: isOthersHovered ? 'blur(4px)' : 'blur(0px)',
+        opacity: isOthersHovered ? 0.5 : 1,
+        zIndex: isHovered ? 50 : 1,
+      }}
+      transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
+      className={`relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-8 transition-colors hover:bg-neutral-50 ${className} ${
+        isHovered ? 'shadow-[0_30px_80px_-15px_rgba(0,0,0,0.15)] border-neutral-300' : 'shadow-sm'
+      }`}
     >
+      {/* Mouse Tracking Spotlight */}
       <div
-        className="pointer-events-none absolute -inset-px transition-opacity duration-300"
+        className="pointer-events-none absolute -inset-px transition duration-300"
         style={{
-          opacity: spotlight.opacity,
-          background: `radial-gradient(380px circle at ${spotlight.x}px ${spotlight.y}px, rgba(23, 23, 23, 0.08), transparent 40%)`
+          opacity: spotlightOpacity,
+          background: `radial-gradient(500px circle at ${position.x}px ${position.y}px, rgba(0,0,0,.04), transparent 45%)`
         }}
       />
-      <div className="relative z-10 h-full flex flex-col">{children}</div>
-    </div>
+      
+      {/* Card Content */}
+      <div className="relative z-10 h-full flex flex-col">
+        {children}
+      </div>
+    </motion.div>
   );
 }
 
+// ==========================================
+// MAIN HOME PAGE
+// ==========================================
 export default function Home() {
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({
@@ -54,6 +93,25 @@ export default function Home() {
   const yImg = useTransform(scrollYProgress, [0, 1], [0, -50]);
   const rotateX = useTransform(scrollYProgress, [0, 1], [60, 0]);
   const rotateZ = useTransform(scrollYProgress, [0, 1], [-45, 0]);
+
+  // State to track which feature card is currently being hovered
+  const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
+
+  // Animation variants for staggered entrance
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
@@ -70,30 +128,39 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
           {/* Hero Text */}
-          <motion.div style={{ y: yText, opacity: opacityText }} className="max-w-2xl">
-            <h1 className="mt-8 text-7xl lg:text-9xl font-bold tracking-tighter leading-[0.85] mb-8">
+          <motion.div 
+            style={{ y: yText, opacity: opacityText }} 
+            className="max-w-2xl"
+            variants={containerVariants}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.h1 variants={itemVariants} className="mt-8 text-7xl lg:text-9xl font-bold tracking-tighter leading-[0.85] mb-8">
               ACE <br />
               YOUR <span className="text-neutral-400 font-light italic">INTERVIEW.</span>
-            </h1>
+            </motion.h1>
 
-            <p className="text-xl text-neutral-600 leading-relaxed max-w-md mb-10 font-light">
+            <motion.p variants={itemVariants} className="text-xl text-neutral-600 leading-relaxed max-w-md mb-10 font-light">
               Train with realistic AI interviewers, get instant feedback, and improve your answers before the real interview.
-            </p>
+            </motion.p>
 
-            <div className="flex gap-4">
-              <Link href="/signin" className="group px-8 py-4 bg-neutral-900 text-white rounded-none flex items-center gap-3 transition-all hover:pl-10">
+            <motion.div variants={itemVariants} className="flex gap-4">
+              <Link href="/interview-setup" className="group px-8 py-4 bg-neutral-900 text-white rounded-xl flex items-center gap-3 transition-all hover:pl-10">
                 Start Mock Interview
                 <ArrowRight className="w-4 h-4" />
               </Link>
-              <button className="px-8 py-4 border border-neutral-200 hover:bg-neutral-50 transition-colors flex items-center gap-2">
+              <button className="px-8 py-4 border border-neutral-200 rounded-xl hover:bg-neutral-50 transition-colors flex items-center gap-2">
                 <PlayCircle className="w-4 h-4" />
                 View Demo
               </button>
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Isometric Dashboard (Parallax) */}
           <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
             style={{ scale: scaleImg, y: yImg }}
             className="relative h-[600px] w-full flex items-center justify-center perspective-[2000px] grayscale hover:grayscale-0 transition-all duration-700"
           >
@@ -199,56 +266,74 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES SECTION */}
-      <section className="pt-12 pb-20 bg-white border-t border-neutral-100">
+      {/* FEATURES SECTION (Blur & Expand Grid) */}
+      <section className="pt-16 pb-24 bg-white border-t border-neutral-100 relative z-20">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="mb-10">
+          <div className="mb-12">
             <h2 className="text-4xl md:text-6xl font-bold tracking-tighter leading-[0.9] text-neutral-900">
               BUILT TO <br /> IMPROVE RESULTS.
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[260px] md:auto-rows-[280px]">
-            <SpotlightCard className="md:col-span-2">
+          
+          {/* Grid Container - Reset hover state when mouse leaves the entire grid */}
+          <div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 auto-rows-[250px] md:auto-rows-[280px]"
+            onMouseLeave={() => setHoveredCardIndex(null)}
+          >
+            
+            {/* Card 1 */}
+            <ExpandableFeatureCard 
+              index={0} 
+              hoveredIndex={hoveredCardIndex} 
+              onHover={() => setHoveredCardIndex(0)} 
+              className="md:col-span-2"
+            >
               <div className="flex justify-between items-start mb-6">
                 <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
                   <Code2 className="w-5 h-5" />
                 </div>
-                <div className="hidden sm:flex gap-2">
-                  <span className="px-3 py-1 bg-neutral-100 rounded-full text-[10px] font-semibold tracking-wide text-neutral-500 border border-neutral-200">Frontend</span>
-                  <span className="px-3 py-1 bg-neutral-100 rounded-full text-[10px] font-semibold tracking-wide text-neutral-500 border border-neutral-200">Senior</span>
-                </div>
               </div>
               <div className="mt-auto">
-                <h3 className="text-2xl font-bold tracking-tight mb-2 text-neutral-900">Role-Specific Practice</h3>
+                <h3 className="text-2xl font-bold tracking-tight mb-2">Role-Specific Practice</h3>
                 <p className="text-sm text-neutral-600 leading-relaxed max-w-md">
-                  Adaptive question sets tuned to your role, stack, and interview difficulty.
+                  Adaptive question sets based on your target role, stack, and selected difficulty.
                 </p>
               </div>
-            </SpotlightCard>
+            </ExpandableFeatureCard>
 
-            <SpotlightCard>
+            {/* Card 2 */}
+            <ExpandableFeatureCard 
+              index={1} 
+              hoveredIndex={hoveredCardIndex} 
+              onHover={() => setHoveredCardIndex(1)}
+            >
               <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center mb-6">
                 <Mic2 className="w-5 h-5" />
               </div>
               <div className="flex items-end gap-1 mb-8 h-10 opacity-70">
-                {[30, 60, 100, 40, 80, 20, 50, 90, 40].map((height, index) => (
+                {[30, 60, 100, 40, 80, 20, 50, 90, 40].map((h, i) => (
                   <motion.div
-                    key={index}
-                    animate={{ height: [`${height}%`, `${height / 2}%`, `${height}%`] }}
-                    transition={{ repeat: Infinity, duration: 1.4, delay: index * 0.08 }}
+                    key={i}
+                    animate={{ height: [`${h}%`, `${h / 2}%`, `${h}%`] }}
+                    transition={{ repeat: Infinity, duration: 1.4, delay: i * 0.08 }}
                     className="flex-1 bg-neutral-300 rounded-t-sm"
                   />
                 ))}
               </div>
               <div className="mt-auto">
-                <h3 className="text-xl font-bold tracking-tight mb-2 text-neutral-900">Vocal Analysis</h3>
+                <h3 className="text-xl font-bold tracking-tight mb-2">Vocal Analysis</h3>
                 <p className="text-sm text-neutral-600 leading-relaxed">
-                  Track filler words, pacing, and delivery quality in real time.
+                  Analyze pacing, filler words, and clarity while you answer.
                 </p>
               </div>
-            </SpotlightCard>
+            </ExpandableFeatureCard>
 
-            <SpotlightCard>
+            {/* Card 3 */}
+            <ExpandableFeatureCard 
+              index={2} 
+              hoveredIndex={hoveredCardIndex} 
+              onHover={() => setHoveredCardIndex(2)}
+            >
               <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center mb-6">
                 <Activity className="w-5 h-5" />
               </div>
@@ -256,16 +341,11 @@ export default function Home() {
                 <svg className="w-full h-full -rotate-90">
                   <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-neutral-200" />
                   <motion.circle
-                    cx="32"
-                    cy="32"
-                    r="28"
-                    stroke="currentColor"
-                    strokeWidth="6"
-                    fill="transparent"
+                    cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent"
                     strokeDasharray="176"
                     initial={{ strokeDashoffset: 176 }}
                     whileInView={{ strokeDashoffset: 36 }}
-                    transition={{ duration: 1.2 }}
+                    transition={{ duration: 1.3 }}
                     className="text-neutral-900"
                     strokeLinecap="round"
                   />
@@ -273,30 +353,37 @@ export default function Home() {
                 <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-neutral-900">80%</div>
               </div>
               <div className="mt-auto">
-                <h3 className="text-xl font-bold tracking-tight mb-2 text-neutral-900">Instant Feedback</h3>
+                <h3 className="text-xl font-bold tracking-tight mb-2">Instant Feedback</h3>
                 <p className="text-sm text-neutral-600 leading-relaxed">
-                  Live answer scoring with structure and clarity insights after every response.
+                  Get live scoring signals and response-quality insights instantly.
                 </p>
               </div>
-            </SpotlightCard>
+            </ExpandableFeatureCard>
 
-            <SpotlightCard className="md:col-span-2">
+            {/* Card 4 */}
+            <ExpandableFeatureCard 
+              index={3} 
+              hoveredIndex={hoveredCardIndex} 
+              onHover={() => setHoveredCardIndex(3)} 
+              className="md:col-span-2"
+            >
               <div className="flex justify-between items-start mb-6">
                 <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
                   <LineChart className="w-5 h-5" />
                 </div>
                 <div className="w-10 h-10 bg-neutral-100 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-500">
                   <FileText className="w-4 h-4" />
-                  </div>
+                </div>
               </div>
               <div className="mt-auto">
-                <h3 className="text-2xl font-bold tracking-tight mb-2 text-neutral-900">Final AI Review</h3>
+                <h3 className="text-2xl font-bold tracking-tight mb-2">Final AI Review</h3>
                 <p className="text-sm text-neutral-600 leading-relaxed max-w-md">
-                  End each session with a full report of strengths, gaps, and targeted improvements.
+                  Receive a complete performance summary with key strengths, weak spots, and next steps.
                 </p>
               </div>
               <div className="absolute -right-12 -bottom-12 w-40 h-40 border-[24px] border-neutral-200 rounded-full pointer-events-none" />
-            </SpotlightCard>
+            </ExpandableFeatureCard>
+
           </div>
         </div>
       </section>
