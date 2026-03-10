@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MODEL_PATH = "../../emotionsDetect/runs/classify/ptrE1/weights/best.pt"
+MODEL_PATH = "../../Emotion-Confidence-detection-model/runs/classify/ptrE1/weights/best.pt"
 model = YOLO(MODEL_PATH)
 
 if torch.cuda.is_available():

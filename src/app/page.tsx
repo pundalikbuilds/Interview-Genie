@@ -1,11 +1,45 @@
 "use client";
 
 import Link from 'next/link';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Bot, CheckCircle, Mic2, PlayCircle, ArrowRight, Cpu as Chip, Mic, Camera } from 'lucide-react';
+import { Bot, CheckCircle, Mic2, PlayCircle, ArrowRight, Mic, Camera, Activity, Code2, LineChart, FileText } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+
+function SpotlightCard({ children, className = '' }: { children: React.ReactNode, className?: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [spotlight, setSpotlight] = useState({ x: 0, y: 0, opacity: 0 });
+
+  const onMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setSpotlight({
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+      opacity: 1
+    });
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseMove={onMouseMove}
+      onMouseEnter={() => setSpotlight((prev) => ({ ...prev, opacity: 1 }))}
+      onMouseLeave={() => setSpotlight((prev) => ({ ...prev, opacity: 0 }))}
+      className={`relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-7 transition-colors hover:bg-neutral-50 ${className}`}
+    >
+      <div
+        className="pointer-events-none absolute -inset-px transition-opacity duration-300"
+        style={{
+          opacity: spotlight.opacity,
+          background: `radial-gradient(380px circle at ${spotlight.x}px ${spotlight.y}px, rgba(23, 23, 23, 0.08), transparent 40%)`
+        }}
+      />
+      <div className="relative z-10 h-full flex flex-col">{children}</div>
+    </div>
+  );
+}
 
 export default function Home() {
   const heroRef = useRef(null);
@@ -27,7 +61,7 @@ export default function Home() {
       <Header />
 
       {/* HERO SECTION */}
-      <section ref={heroRef} className="relative min-h-[100vh] flex items-center pt-32 pb-20 overflow-hidden border-b border-neutral-100">
+      <section ref={heroRef} className="relative min-h-[88vh] flex items-center pt-28 pb-10 overflow-hidden border-b border-neutral-100">
         {/* Background Grid */}
         <div
           className="absolute inset-0 z-0 opacity-[0.03]"
@@ -47,7 +81,7 @@ export default function Home() {
             </p>
 
             <div className="flex gap-4">
-              <Link href="/interview-setup" className="group px-8 py-4 bg-neutral-900 text-white rounded-none flex items-center gap-3 transition-all hover:pl-10">
+              <Link href="/signin" className="group px-8 py-4 bg-neutral-900 text-white rounded-none flex items-center gap-3 transition-all hover:pl-10">
                 Start Mock Interview
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -165,43 +199,104 @@ export default function Home() {
         </div>
       </section>
 
-      {/* METHODOLOGY / BENTO GRID */}
-      <section className="py-32 bg-white border-t border-neutral-100">
+      {/* FEATURES SECTION */}
+      <section className="pt-12 pb-20 bg-white border-t border-neutral-100">
         <div className="max-w-7xl mx-auto px-6">
-          {/* Section Heading */}
-          <div className="mb-20">
-            <h2 className="mt-8 text-4xl md:text-6xl font-bold tracking-tighter leading-[0.9] text-neutral-900">
+          <div className="mb-10">
+            <h2 className="text-4xl md:text-6xl font-bold tracking-tighter leading-[0.9] text-neutral-900">
               BUILT TO <br /> IMPROVE RESULTS.
             </h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4 h-auto md:h-[600px]">
-            {/* Large Feature Card */}
-            <div className="md:col-span-2 md:row-span-2 bg-neutral-100 p-8 lg:p-12 relative group overflow-hidden">
-              
-              <div className="relative z-10 h-full flex flex-col justify-end">
-                <h3 className="text-3xl font-bold tracking-tight mb-4">Role-Specific Practice</h3>
-                <p className="text-neutral-600 max-w-md">Personalized, adaptive questions based on job role, performance, and experience level.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[260px] md:auto-rows-[280px]">
+            <SpotlightCard className="md:col-span-2">
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                  <Code2 className="w-5 h-5" />
+                </div>
+                <div className="hidden sm:flex gap-2">
+                  <span className="px-3 py-1 bg-neutral-100 rounded-full text-[10px] font-semibold tracking-wide text-neutral-500 border border-neutral-200">Frontend</span>
+                  <span className="px-3 py-1 bg-neutral-100 rounded-full text-[10px] font-semibold tracking-wide text-neutral-500 border border-neutral-200">Senior</span>
+                </div>
               </div>
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 group-hover:scale-105 transition-transform duration-700"></div>
-            </div>
-
-            {/* Metric Card */}
-            <div className="bg-neutral-900 text-white p-8 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-neutral-800 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out"></div>
-              <div className="relative z-10">
-                <h3 className="text-xl font-bold mb-2">Instant Feedback</h3>
-                <p className="text-neutral-400 text-sm">Real-time NLP scoring, semantic analysis, and improvement insights after every answer.</p>
+              <div className="mt-auto">
+                <h3 className="text-2xl font-bold tracking-tight mb-2 text-neutral-900">Role-Specific Practice</h3>
+                <p className="text-sm text-neutral-600 leading-relaxed max-w-md">
+                  Adaptive question sets tuned to your role, stack, and interview difficulty.
+                </p>
               </div>
-            </div>
+            </SpotlightCard>
 
-            {/* CTA Card */}
-            <div className="bg-neutral-100 p-8 relative group cursor-pointer border border-neutral-200">
-              <div className="mt-20">
-                <h3 className="text-xl font-bold">Final AI Review</h3>
-                <p className="text-sm text-neutral-500 mt-2">Comprehensive performance report with strengths, gaps, and recommendations.</p>
+            <SpotlightCard>
+              <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center mb-6">
+                <Mic2 className="w-5 h-5" />
               </div>
-            </div>
+              <div className="flex items-end gap-1 mb-8 h-10 opacity-70">
+                {[30, 60, 100, 40, 80, 20, 50, 90, 40].map((height, index) => (
+                  <motion.div
+                    key={index}
+                    animate={{ height: [`${height}%`, `${height / 2}%`, `${height}%`] }}
+                    transition={{ repeat: Infinity, duration: 1.4, delay: index * 0.08 }}
+                    className="flex-1 bg-neutral-300 rounded-t-sm"
+                  />
+                ))}
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-xl font-bold tracking-tight mb-2 text-neutral-900">Vocal Analysis</h3>
+                <p className="text-sm text-neutral-600 leading-relaxed">
+                  Track filler words, pacing, and delivery quality in real time.
+                </p>
+              </div>
+            </SpotlightCard>
+
+            <SpotlightCard>
+              <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center mb-6">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div className="relative w-16 h-16 mb-6">
+                <svg className="w-full h-full -rotate-90">
+                  <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-neutral-200" />
+                  <motion.circle
+                    cx="32"
+                    cy="32"
+                    r="28"
+                    stroke="currentColor"
+                    strokeWidth="6"
+                    fill="transparent"
+                    strokeDasharray="176"
+                    initial={{ strokeDashoffset: 176 }}
+                    whileInView={{ strokeDashoffset: 36 }}
+                    transition={{ duration: 1.2 }}
+                    className="text-neutral-900"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-neutral-900">80%</div>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-xl font-bold tracking-tight mb-2 text-neutral-900">Instant Feedback</h3>
+                <p className="text-sm text-neutral-600 leading-relaxed">
+                  Live answer scoring with structure and clarity insights after every response.
+                </p>
+              </div>
+            </SpotlightCard>
+
+            <SpotlightCard className="md:col-span-2">
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 bg-neutral-900 text-white rounded-xl flex items-center justify-center">
+                  <LineChart className="w-5 h-5" />
+                </div>
+                <div className="w-10 h-10 bg-neutral-100 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-500">
+                  <FileText className="w-4 h-4" />
+                  </div>
+              </div>
+              <div className="mt-auto">
+                <h3 className="text-2xl font-bold tracking-tight mb-2 text-neutral-900">Final AI Review</h3>
+                <p className="text-sm text-neutral-600 leading-relaxed max-w-md">
+                  End each session with a full report of strengths, gaps, and targeted improvements.
+                </p>
+              </div>
+              <div className="absolute -right-12 -bottom-12 w-40 h-40 border-[24px] border-neutral-200 rounded-full pointer-events-none" />
+            </SpotlightCard>
           </div>
         </div>
       </section>
