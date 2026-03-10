@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Interview-Genie | AI Powered Mock Interview Platform",
   description: "AI powered mock interview platform to help you ace your next interview with personalized practice sessions",
+  icons: {
+    icon: "/next.svg",
+    shortcut: "/next.svg",
+    apple: "/next.svg",
+  },
 };
 
 export default function RootLayout({

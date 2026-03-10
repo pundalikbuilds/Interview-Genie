@@ -12,12 +12,13 @@
     "@clerk/nextjs": "^6.32.0",
     "@headlessui/react": "^2.2.8",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.34.0",
+    "framer-motion": "^12.34.2",
     "gsap": "^3.14.2",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-rnd": "^10.5.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

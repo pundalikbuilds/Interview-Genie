@@ -1,5 +1,5 @@
 "use client";
-
+import { Rnd } from "react-rnd";
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -11,7 +11,6 @@ import {
   PhoneOff,
   User,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const MOCK_SCRIPT = [
@@ -41,8 +40,12 @@ type TranscriptEntry = {
 export default function InterviewRoom() {
   const [timeLeft, setTimeLeft] = useState(15 * 60);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
-  const [cameraError, setCameraError] = useState(false);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(true);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [emotion, setEmotion] = useState("");
+  const [confidence, setConfidence] = useState(0);
+  const [predictionError, setPredictionError] = useState<string | null>(null);
+  const [isClientMounted, setIsClientMounted] = useState(false);
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,34 +53,116 @@ export default function InterviewRoom() {
   const transcriptIdRef = useRef(0);
   const scriptStartedRef = useRef(false);
   const scriptTimeoutsRef = useRef<number[]>([]);
+  const predictionRetryAfterRef = useRef(0);
+  const predictionApiUrl =
+    process.env.NEXT_PUBLIC_PREDICTION_API_URL ?? "/api/predict";
 
+  // EMOTION DETECTION
+  const captureAndSendFrame = async () => {
+  if (!videoRef.current) return;
+  if (Date.now() < predictionRetryAfterRef.current) return;
+  if (videoRef.current.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) return;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = videoRef.current.videoWidth;
+  canvas.height = videoRef.current.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.drawImage(videoRef.current, 0, 0);
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg")
+  );
+
+  if (!blob) return;
+
+  const formData = new FormData();
+  formData.append("file", blob, "frame.jpg");
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(predictionApiUrl, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+    window.clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`Prediction API failed with ${res.status}`);
+    }
+
+    const data = await res.json();
+    setEmotion(data.emotion);
+    setConfidence(data.confidence);
+    if (predictionError) {
+      setPredictionError(null);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Prediction request failed";
+    predictionRetryAfterRef.current = Date.now() + 10000;
+    setPredictionError((prev) => (prev === message ? prev : message));
+  }
+};
+useEffect(() => {
+  const interval = setInterval(() => {
+    captureAndSendFrame();
+  }, 2000); // every 2 seconds
+
+  return () => clearInterval(interval);
+}, []);
+  // CAMERA
   useEffect(() => {
     let stream: MediaStream | null = null;
+    let mounted = true;
 
     const startCamera = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: { facingMode: "user" },
           audio: true,
         });
-        if (videoRef.current) {
+        if (videoRef.current && mounted) {
           videoRef.current.srcObject = stream;
+          // Ensure video plays
+          try {
+            await videoRef.current.play();
+          } catch (playError) {
+            console.warn("Video autoplay failed, user interaction may be required:", playError);
+          }
         }
       } catch (error) {
-        console.error("Camera access denied or unavailable.", error);
-        setCameraError(true);
+        const err = error as DOMException;
+        console.error("Camera error:", err.name, err.message);
+        let errorMsg = "Camera unavailable";
+        if (err.name === "NotReadableError") {
+          errorMsg = "Camera in use by another app";
+        } else if (err.name === "NotAllowedError") {
+          errorMsg = "Camera permission denied";
+        } else if (err.name === "NotFoundError") {
+          errorMsg = "No camera found";
+        }
+        if (mounted) {
+          setCameraError(errorMsg);
+        }
       }
     };
 
     startCamera();
 
     return () => {
+      mounted = false;
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
+  // TIMER
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
@@ -104,24 +189,17 @@ export default function InterviewRoom() {
     router.replace("/feedback");
   };
 
+  // MOCK SCRIPT
   useEffect(() => {
-    if (scriptStartedRef.current) {
-      return;
-    }
-
+    if (scriptStartedRef.current) return;
     scriptStartedRef.current = true;
 
     MOCK_SCRIPT.forEach((msg, index) => {
       const timeoutId = window.setTimeout(() => {
-        if (msg.role === "ai") {
-          setIsAiSpeaking(true);
-        }
+        if (msg.role === "ai") setIsAiSpeaking(true);
 
         transcriptIdRef.current += 1;
-        const uniqueId =
-          typeof crypto !== "undefined" && "randomUUID" in crypto
-            ? crypto.randomUUID()
-            : `msg-${transcriptIdRef.current}-${Date.now()}-${index}`;
+        const uniqueId = crypto.randomUUID();
 
         setTranscript((prev) => [
           ...prev,
@@ -145,9 +223,9 @@ export default function InterviewRoom() {
     });
 
     return () => {
-      scriptTimeoutsRef.current.forEach((timeoutId) => {
-        window.clearTimeout(timeoutId);
-      });
+      scriptTimeoutsRef.current.forEach((timeoutId) =>
+        window.clearTimeout(timeoutId)
+      );
       scriptTimeoutsRef.current = [];
       scriptStartedRef.current = false;
     };
@@ -157,10 +235,23 @@ export default function InterviewRoom() {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript]);
 
+  useEffect(() => {
+    setIsClientMounted(true);
+  }, []);
+
   return (
-    <div className="flex h-screen w-full bg-neutral-950 text-white overflow-hidden font-sans">
-      <div className="relative flex-1 p-4 flex flex-col justify-between">
-        <div className="relative z-10 flex justify-between items-center px-4 py-2">
+    <div className="flex h-screen w-full bg-gradient-to-br from-neutral-700 via-neutral-800 to-neutral-900 text-white overflow-hidden font-sans">
+      {predictionError && (
+        <div className="absolute right-4 top-4 z-50 rounded-md bg-red-500/90 px-3 py-2 text-xs text-white shadow-lg">
+          Emotion API unavailable: {predictionError}
+        </div>
+      )}
+      
+      {/* LEFT SIDE */}
+      <div className="relative flex-1">
+
+        {/* Top Bar */}
+        <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
           <div className="flex items-center gap-2 bg-neutral-900/50 backdrop-blur-md px-4 py-2 rounded-full border border-neutral-800">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-xs font-bold tracking-widest uppercase">
@@ -168,124 +259,95 @@ export default function InterviewRoom() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="bg-neutral-900/50 backdrop-blur-md px-4 py-2 rounded-full border border-neutral-800 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-neutral-400" />
-              <span className="font-mono text-sm font-medium">
-                {formatTime(timeLeft)}
-              </span>
-            </div>
+          <div className="bg-neutral-900/50 backdrop-blur-md px-4 py-2 rounded-full border border-neutral-800 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-neutral-400" />
+            <span className="font-mono text-sm font-medium">
+              {formatTime(timeLeft)}
+            </span>
           </div>
         </div>
 
-        <div className="absolute inset-4 rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-800 z-0">
-          {!cameraError ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover transform scale-x-[-1]"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-neutral-900 to-neutral-950">
-              <div className="w-24 h-24 rounded-full bg-neutral-800 flex items-center justify-center mb-4 border border-neutral-700">
-                <User className="w-10 h-10 text-neutral-500" />
-              </div>
-              <p className="text-neutral-400 text-sm">Camera is turned off</p>
-            </div>
-          )}
-
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
-        </div>
-
-        <div className="relative z-10 flex justify-between items-end px-4 pb-4">
-          <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-lg border border-white/10 text-sm font-medium">
-            You
-          </div>
-
-          <motion.div
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="absolute left-1/2 bottom-8 -translate-x-1/2 flex items-center gap-4 bg-neutral-900/80 backdrop-blur-xl p-3 rounded-2xl border border-neutral-800 shadow-2xl"
+        {/* WEBCAM (40% bottom-left) */}
+        {isClientMounted && (
+          <Rnd
+            default={{
+              x: 20,
+              y: window.innerHeight - 300,
+              width: 380,
+              height: 220,
+            }}
+            minWidth={250}
+            minHeight={150}
+            bounds="window"
+            className="z-40"
           >
-            <button
-              type="button"
-              onClick={handleEndCall}
-              className="px-6 py-4 rounded-xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 text-white"
-            >
-              <PhoneOff className="w-5 h-5" />
-              End Call
-            </button>
-          </motion.div>
+            <div className="w-full h-full rounded-3xl overflow-hidden bg-neutral-900 border border-neutral-800 shadow-2xl relative">
+              {cameraError === null ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover transform scale-x-[-1]"
+                  />
 
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="relative"
-          >
-            {isAiSpeaking && (
-              <motion.div
-                layoutId="glow"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.05, 1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="absolute -inset-2 bg-indigo-500/30 rounded-3xl blur-xl"
-              />
-            )}
-
-            <div className="relative bg-neutral-900 border border-neutral-700 w-32 h-40 rounded-2xl shadow-2xl overflow-hidden flex flex-col items-center justify-center bg-gradient-to-t from-indigo-950/50 to-neutral-900">
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors duration-500 ${
-                  isAiSpeaking ? "bg-indigo-600" : "bg-neutral-800"
-                }`}
-              >
-                <Bot className="w-6 h-6 text-white" />
-              </div>
-              <span className="mt-3 text-xs font-bold tracking-widest uppercase text-neutral-300">
-                AI Assistant
-              </span>
-              {isAiSpeaking && (
-                <div className="absolute bottom-3 flex gap-1 items-end h-3">
-                  {[1, 2, 3].map((i) => (
-                    <motion.div
-                      key={i}
-                      animate={{ height: ["40%", "100%", "40%"] }}
-                      transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }}
-                      className="w-1 bg-indigo-400 rounded-full"
-                    />
-                  ))}
+                  {emotion && (
+                    <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm shadow-lg">
+                      <div className="font-semibold">Emotion: {emotion}</div>
+                      <div>Confidence: {(confidence * 100).toFixed(1)}%</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-red-400">
+                  {cameraError}
                 </div>
               )}
             </div>
-          </motion.div>
+          </Rnd>
+        )}
+        
+
+        {/* End Call Button */}
+        <div className="absolute bottom-8 right-8 z-20">
+          <button
+            onClick={handleEndCall}
+            className="px-6 py-4 rounded-xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 text-white shadow-xl"
+          >
+            <PhoneOff className="w-5 h-5" />
+            End Call
+          </button>
         </div>
+
+
       </div>
 
+      {/* RIGHT SIDE - TRANSCRIPT */}
       <motion.div
         initial={{ x: 400 }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 200 }}
-        className="w-96 bg-white text-neutral-900 flex flex-col rounded-l-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-20 my-4"
+        className="w-[500px] bg-white text-neutral-900 flex flex-col rounded-l-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-20 my-4"
+
       >
         <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-white rounded-tl-3xl">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-indigo-600" />
-            <h2 className="font-bold text-lg tracking-tight">Live Transcript</h2>
+            <h2 className="font-bold text-lg tracking-tight">
+              Live Transcript
+            </h2>
           </div>
-          <button className="text-neutral-400 hover:text-neutral-900 transition-colors">
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
+          <MoreHorizontal className="w-5 h-5 text-neutral-400" />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-neutral-50/50">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-neutral-50/50">
           <AnimatePresence initial={false}>
             {transcript.map((msg) => (
               <motion.div
                 key={msg.id}
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 className={`flex flex-col ${
                   msg.role === "user" ? "items-end" : "items-start"
                 }`}
@@ -324,6 +386,47 @@ export default function InterviewRoom() {
           </div>
         </div>
       </motion.div>
+      {/* AI ASSISTANT - TRUE SCREEN CENTER */}
+<div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+  <div className="relative">
+
+    {isAiSpeaking && (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: [0.4, 0.9, 0.4], scale: [1, 1.15, 1] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        className="absolute -inset-10 bg-indigo-500/30 rounded-full blur-3xl"
+      />
+    )}
+
+    <div className="relative w-56 h-56 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 flex flex-col items-center justify-center shadow-2xl border border-indigo-400/30">
+
+      <Bot className="w-16 h-16 text-white mb-2" />
+
+      <span className="text-sm font-bold tracking-widest uppercase text-white/80">
+        AI Assistant
+      </span>
+
+      {isAiSpeaking && (
+        <div className="absolute bottom-10 flex gap-1 items-end h-5">
+          {[1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              animate={{ height: ["40%", "100%", "40%"] }}
+              transition={{
+                repeat: Infinity,
+                duration: 0.8,
+                delay: i * 0.15,
+              }}
+              className="w-1 bg-white rounded-full"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
     </div>
   );
 }
