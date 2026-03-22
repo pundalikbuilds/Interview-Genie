@@ -162,7 +162,11 @@ useEffect(() => {
   };
 
   const handleEndCall = () => {
-    router.replace("/feedback");
+    try {
+      router.push("/feedback");
+    } catch {
+      window.location.href = "/feedback";
+    }
   };
 
   // MOCK SCRIPT
@@ -228,6 +232,7 @@ const sendFrame = () => {
   if (!videoRef.current || !wsRef.current) return;
 
   const video = videoRef.current;
+  const ws = wsRef.current;
 
   if (
     video.readyState !== 4 ||
@@ -235,7 +240,7 @@ const sendFrame = () => {
     video.videoHeight === 0
   ) return;
 
-  if (wsRef.current.readyState !== 1) return; // 🔥 important
+  if (ws.readyState !== WebSocket.OPEN) return; // important
 
   const canvas = document.createElement("canvas");
   canvas.width = 320;
@@ -247,8 +252,9 @@ const sendFrame = () => {
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   canvas.toBlob((blob) => {
-    if (blob) {
-      wsRef.current!.send(blob);
+    // Guard again because toBlob is async and socket state can change meanwhile.
+    if (blob && ws.readyState === WebSocket.OPEN) {
+      ws.send(blob);
     }
   }, "image/jpeg");
 };
@@ -355,14 +361,14 @@ useEffect(() => {
   );
 
   return (
-    <div className="min-h-screen w-full bg-neutral-950 text-white overflow-hidden font-sans">
+    <div className="grid min-h-screen w-full grid-cols-[1fr_minmax(260px,30vw)] gap-4 overflow-hidden bg-neutral-950 p-4 font-sans text-white lg:gap-6 lg:p-6">
       <div className="absolute inset-0 pointer-events-none opacity-40">
         <div className="absolute left-[12%] top-[10%] h-80 w-80 rounded-full bg-neutral-700/20 blur-3xl" />
         <div className="absolute right-[10%] bottom-[8%] h-96 w-96 rounded-full bg-neutral-800/30 blur-3xl" />
       </div>
 
       {/* LEFT SIDE */}
-      <div className="relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 shadow-2xl lg:min-h-[calc(100vh-3rem)]">
+      <div className="order-1 relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 shadow-2xl lg:min-h-[calc(100vh-3rem)]">
 
         <div className="absolute inset-0 pointer-events-none opacity-[0.06] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:28px_28px]" />
 
@@ -423,7 +429,7 @@ useEffect(() => {
         
 
         {/* End Call Button */}
-        <div className="absolute bottom-8 right-8 z-20">
+        <div className="absolute bottom-8 right-8 z-50 pointer-events-auto">
           <button
             onClick={handleEndCall}
             className="px-6 py-4 rounded-2xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 text-white shadow-xl"
@@ -441,7 +447,7 @@ useEffect(() => {
         initial={{ x: 400 }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 200 }}
-        className="z-20 flex min-h-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white text-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:min-h-[calc(100vh-3rem)]"
+        className="order-2 z-20 flex min-h-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white text-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:min-h-[calc(100vh-3rem)]"
 
       >
         <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-white">
