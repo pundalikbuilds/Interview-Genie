@@ -5,7 +5,9 @@ import cv2
 from ultralytics import YOLO
 import torch
 
-app = FastAPI()
+from routes import auth_router, interview_router, feedback_router, user_router
+
+app = FastAPI(title="Interview Genie API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -14,6 +16,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Register routers ───────────────────────────────────────────────────────────
+app.include_router(auth_router)
+app.include_router(interview_router)
+app.include_router(feedback_router)
+app.include_router(user_router)
 
 MODEL_PATH = "../../Emotion-Confidence-detection-model/runs/classify/ptrE1/weights/best.pt"
 model = YOLO(MODEL_PATH)

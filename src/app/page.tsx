@@ -126,11 +126,11 @@ export default function Home() {
           style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '24px 24px' }}
         />
 
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 lg:gap-24 items-center relative z-10">
           {/* Hero Text */}
           <motion.div 
             style={{ y: yText, opacity: opacityText }} 
-            className="max-w-2xl"
+            className="relative z-20 max-w-2xl"
             variants={containerVariants}
             initial="hidden"
             animate="show"
@@ -162,7 +162,7 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
             style={{ scale: scaleImg, y: yImg }}
-            className="relative h-[600px] w-full flex items-center justify-center perspective-[2000px] grayscale hover:grayscale-0 transition-all duration-700"
+            className="relative z-10 h-[600px] w-full flex items-center justify-center lg:justify-end lg:pl-8 perspective-[2000px] grayscale hover:grayscale-0 transition-all duration-700"
           >
             <motion.div
               className="relative w-[350px] sm:w-[450px] h-[500px] transform-style-3d"
@@ -222,7 +222,7 @@ export default function Home() {
                 <motion.div
                   animate={{ y: [0, 15, 0] }}
                   transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut', delay: 1 }}
-                  className="absolute -left-12 bottom-48 bg-neutral-900 p-5 rounded-xl shadow-2xl border border-neutral-800 w-52 z-20 text-white"
+                  className="absolute left-2 sm:left-0 lg:-left-6 bottom-48 bg-neutral-900 p-5 rounded-xl shadow-2xl border border-neutral-800 w-52 z-20 text-white"
                   style={{ transform: 'translateZ(60px)' }}
                 >
                   <div className="flex items-center gap-3 mb-4">
