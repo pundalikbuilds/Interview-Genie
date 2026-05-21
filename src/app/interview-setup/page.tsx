@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, PlayCircle } from "lucide-react";
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JobRoleInput from "@/components/interview/JobRoleInput";
@@ -12,17 +14,26 @@ import DifficultySelector from "@/components/interview/DifficultySelector";
 import CameraPreview from "@/components/interview/CameraPreview";
 import ProgressIndicator from "@/components/interview/ProgressIndicator";
 
-type DifficultyLevel = "easy" | "intermediate" | "hard";
+import {
+  generateInterviewQuestion,
+  DifficultyLevel,
+} from "@/services/interview_services";
 
 export default function InterviewSetupPage() {
+  const router = useRouter();
+
   const [step, setStep] = useState(1);
   const totalSteps = 2;
 
   const [jobRole, setJobRole] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>("intermediate");
+  const [difficulty, setDifficulty] =
+    useState<DifficultyLevel>("intermediate");
+
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [micEnabled, setMicEnabled] = useState(false);
+
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -36,13 +47,47 @@ export default function InterviewSetupPage() {
     }
   };
 
-  const isStep1Valid = jobRole.trim().length > 2 && skills.length > 0;
-  const canStartInterview = cameraEnabled && micEnabled;
+  const handleStartInterview = async () => {
+    setIsGenerating(true);
+
+    try {
+      const data = await generateInterviewQuestion({
+        jobRole,
+        skills,
+        difficulty,
+      });
+
+      router.push(
+        `/interview-room?question=${encodeURIComponent(data.question)}`
+      );
+    } catch (error) {
+      console.error("Interview generation failed:", error);
+
+      // fallback navigation
+      router.push("/interview-room");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const isStep1Valid =
+    jobRole.trim().length > 2 && skills.length > 0;
+
+  const canStartInterview =
+    cameraEnabled && micEnabled;
 
   const stepVariants = {
     hidden: { opacity: 0, x: 20 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.35 } },
-    exit: { opacity: 0, x: -20, transition: { duration: 0.25 } },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.35 },
+    },
+    exit: {
+      opacity: 0,
+      x: -20,
+      transition: { duration: 0.25 },
+    },
   };
 
   return (
@@ -56,18 +101,24 @@ export default function InterviewSetupPage() {
               href="/"
               className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-400 hover:text-neutral-900 transition-colors mb-6"
             >
-              <ArrowLeft className="h-3 w-3" /> Back to Home
+              <ArrowLeft className="h-3 w-3" />
+              Back to Home
             </Link>
+
             <h1 className="text-4xl font-bold text-neutral-900 tracking-tight">
               Configure Session
             </h1>
+
             <p className="mt-2 text-neutral-500">
               Calibrate your interview settings before you begin.
             </p>
           </div>
 
           <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] border border-neutral-200 p-6 md:p-10">
-            <ProgressIndicator currentStep={step} totalSteps={totalSteps} />
+            <ProgressIndicator
+              currentStep={step}
+              totalSteps={totalSteps}
+            />
 
             <div className="min-h-[350px]">
               <AnimatePresence mode="wait">
@@ -80,9 +131,20 @@ export default function InterviewSetupPage() {
                     exit="exit"
                     className="space-y-8"
                   >
-                    <JobRoleInput value={jobRole} onChange={setJobRole} />
-                    <SkillsInput skills={skills} onChange={setSkills} />
-                    <DifficultySelector value={difficulty} onChange={setDifficulty} />
+                    <JobRoleInput
+                      value={jobRole}
+                      onChange={setJobRole}
+                    />
+
+                    <SkillsInput
+                      skills={skills}
+                      onChange={setSkills}
+                    />
+
+                    <DifficultySelector
+                      value={difficulty}
+                      onChange={setDifficulty}
+                    />
                   </motion.div>
                 )}
 
@@ -116,7 +178,8 @@ export default function InterviewSetupPage() {
                     : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                 }`}
               >
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-4 w-4" />
+                Back
               </button>
 
               {step < totalSteps ? (
@@ -129,24 +192,31 @@ export default function InterviewSetupPage() {
                       : "bg-neutral-900 text-white hover:bg-neutral-800 shadow-md hover:shadow-lg hover:-translate-y-0.5"
                   }`}
                 >
-                  Continue <ArrowRight className="h-4 w-4" />
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
                 </button>
               ) : (
                 <>
                   {canStartInterview ? (
-                    <Link
-                      href="/interview-room"
-                      className="flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                    <button
+                      onClick={handleStartInterview}
+                      disabled={isGenerating}
+                      className="flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      <PlayCircle className="h-5 w-5" /> Start Interview
-                    </Link>
+                      <PlayCircle className="h-5 w-5" />
+
+                      {isGenerating
+                        ? "Generating..."
+                        : "Start Interview"}
+                    </button>
                   ) : (
                     <button
                       type="button"
                       disabled
                       className="flex items-center gap-2 px-8 py-3.5 bg-neutral-100 text-neutral-400 rounded-xl text-sm font-bold cursor-not-allowed"
                     >
-                      <PlayCircle className="h-5 w-5" /> Start Interview
+                      <PlayCircle className="h-5 w-5" />
+                      Start Interview
                     </button>
                   )}
                 </>
