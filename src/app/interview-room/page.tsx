@@ -44,6 +44,7 @@ export default function InterviewRoom() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [emotion, setEmotion] = useState("");
   const [confidence, setConfidence] = useState(0);
+  const [predictionError, setPredictionError] = useState<string | null>(null);
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [isSwapped, setIsSwapped] = useState(false);
   const router = useRouter();
@@ -52,43 +53,70 @@ export default function InterviewRoom() {
   const streamRef = useRef<MediaStream | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const transcriptIdRef = useRef(0);
-  const wsRef = useRef<WebSocket | null>(null);
   const scriptStartedRef = useRef(false);
   const scriptTimeoutsRef = useRef<number[]>([]);
+  const predictionRetryAfterRef = useRef(0);
+  const predictionApiUrl =
+    process.env.NEXT_PUBLIC_PREDICTION_API_URL ?? "/api/";
 
+  // EMOTION DETECTION
+  const captureAndSendFrame = async () => {
+  if (!videoRef.current) return;
+  if (Date.now() < predictionRetryAfterRef.current) return;
+  if (videoRef.current.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) return;
 
-//WEBSOCKET CONNECTION
-useEffect(() => {
-  if (wsRef.current) return; // 🚨 PREVENT DUPLICATE CONNECTIONS
+  const canvas = document.createElement("canvas");
+  canvas.width = videoRef.current.videoWidth;
+  canvas.height = videoRef.current.videoHeight;
 
-  const ws = new WebSocket("ws://localhost:8000/ws");
-  wsRef.current = ws;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
-  ws.onopen = () => {
-    console.log("WebSocket connected");
-  };
+  ctx.drawImage(videoRef.current, 0, 0);
 
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg")
+  );
+
+  if (!blob) return;
+
+  const formData = new FormData();
+  formData.append("file", blob, "frame.jpg");
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(predictionApiUrl, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+    });
+    window.clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`Prediction API failed with ${res.status}`);
+    }
+
+    const data = await res.json();
     setEmotion(data.emotion);
     setConfidence(data.confidence);
-  };
+    if (predictionError) {
+      setPredictionError(null);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Prediction request failed";
+    predictionRetryAfterRef.current = Date.now() + 10000;
+    setPredictionError((prev) => (prev === message ? prev : message));
+  }
+};
+useEffect(() => {
+  const interval = setInterval(() => {
+    captureAndSendFrame();
+  }, 2000); // every 2 seconds
 
-  ws.onerror = (err) => {
-    console.log("WebSocket error (can ignore during reconnect)");
-  };
-
-  ws.onclose = () => {
-    console.log("WebSocket closed");
-  };
-
-  return () => {
-    ws.close();
-    wsRef.current = null; // 🔥 IMPORTANT
-  };
+  return () => clearInterval(interval);
 }, []);
-
-
   // CAMERA
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -162,11 +190,7 @@ useEffect(() => {
   };
 
   const handleEndCall = () => {
-    try {
-      router.push("/feedback");
-    } catch {
-      window.location.href = "/feedback";
-    }
+    router.replace("/feedback");
   };
 
   // MOCK SCRIPT
@@ -225,54 +249,6 @@ useEffect(() => {
       videoRef.current.play().catch(() => undefined);
     }
   }, [isSwapped]);
-
-
-  //SEND FRAMES
-const sendFrame = () => {
-  if (!videoRef.current || !wsRef.current) return;
-
-  const video = videoRef.current;
-  const ws = wsRef.current;
-
-  if (
-    video.readyState !== 4 ||
-    video.videoWidth === 0 ||
-    video.videoHeight === 0
-  ) return;
-
-  if (ws.readyState !== WebSocket.OPEN) return; // important
-
-  const canvas = document.createElement("canvas");
-  canvas.width = 320;
-  canvas.height = 240;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  canvas.toBlob((blob) => {
-    // Guard again because toBlob is async and socket state can change meanwhile.
-    if (blob && ws.readyState === WebSocket.OPEN) {
-      ws.send(blob);
-    }
-  }, "image/jpeg");
-};
-
-//STREAMING LOOP
-useEffect(() => {
-  const interval = setInterval(() => {
-    if (
-      wsRef.current &&
-      wsRef.current.readyState === WebSocket.OPEN
-    ) {
-      sendFrame();
-    }
-  }, 120); // slightly slower = more stable
-
-  return () => clearInterval(interval);
-}, []);
-
 
   const renderCameraView = (isMain: boolean) => (
     <div className="relative h-full w-full bg-neutral-900 flex items-center justify-center">
@@ -361,14 +337,21 @@ useEffect(() => {
   );
 
   return (
-    <div className="grid min-h-screen w-full grid-cols-[1fr_minmax(260px,30vw)] gap-4 overflow-hidden bg-neutral-950 p-4 font-sans text-white lg:gap-6 lg:p-6">
+    <div className="min-h-screen w-full bg-neutral-950 text-white overflow-hidden font-sans">
       <div className="absolute inset-0 pointer-events-none opacity-40">
         <div className="absolute left-[12%] top-[10%] h-80 w-80 rounded-full bg-neutral-700/20 blur-3xl" />
         <div className="absolute right-[10%] bottom-[8%] h-96 w-96 rounded-full bg-neutral-800/30 blur-3xl" />
       </div>
 
+      <div className="relative grid min-h-screen grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(0,1fr)_420px] lg:p-6">
+      {predictionError && (
+        <div className="absolute right-4 top-4 z-50 rounded-md bg-red-500/90 px-3 py-2 text-xs text-white shadow-lg">
+          Emotion API unavailable: {predictionError}
+        </div>
+      )}
+      
       {/* LEFT SIDE */}
-      <div className="order-1 relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 shadow-2xl lg:min-h-[calc(100vh-3rem)]">
+      <div className="relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 shadow-2xl lg:min-h-[calc(100vh-3rem)]">
 
         <div className="absolute inset-0 pointer-events-none opacity-[0.06] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:28px_28px]" />
 
@@ -429,7 +412,7 @@ useEffect(() => {
         
 
         {/* End Call Button */}
-        <div className="absolute bottom-8 right-8 z-50 pointer-events-auto">
+        <div className="absolute bottom-8 right-8 z-20">
           <button
             onClick={handleEndCall}
             className="px-6 py-4 rounded-2xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 text-white shadow-xl"
@@ -447,7 +430,7 @@ useEffect(() => {
         initial={{ x: 400 }}
         animate={{ x: 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 200 }}
-        className="order-2 z-20 flex min-h-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white text-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:min-h-[calc(100vh-3rem)]"
+        className="z-20 flex min-h-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white text-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:min-h-[calc(100vh-3rem)]"
 
       >
         <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-white">
@@ -505,6 +488,7 @@ useEffect(() => {
           </div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 }

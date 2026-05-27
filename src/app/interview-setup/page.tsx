@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, PlayCircle } from "lucide-react";
@@ -11,18 +12,22 @@ import SkillsInput from "@/components/interview/SkillsInput";
 import DifficultySelector from "@/components/interview/DifficultySelector";
 import CameraPreview from "@/components/interview/CameraPreview";
 import ProgressIndicator from "@/components/interview/ProgressIndicator";
+import { sendJobDetails } from "@/services/jobdesc";
 
 type DifficultyLevel = "easy" | "intermediate" | "hard";
 
 export default function InterviewSetupPage() {
   const [step, setStep] = useState(1);
   const totalSteps = 2;
+  const router = useRouter();
 
   const [jobRole, setJobRole] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>("intermediate");
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [micEnabled, setMicEnabled] = useState(false);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -38,6 +43,71 @@ export default function InterviewSetupPage() {
 
   const isStep1Valid = jobRole.trim().length > 2 && skills.length > 0;
   const canStartInterview = cameraEnabled && micEnabled;
+
+  const getStoredUserId = () => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    const directKeys = ["userId", "user_id", "id"];
+
+    for (const key of directKeys) {
+      const storedValue = window.localStorage.getItem(key);
+      if (storedValue) {
+        return storedValue;
+      }
+    }
+
+    const storedUser = window.localStorage.getItem("user");
+    if (!storedUser) {
+      return null;
+    }
+
+    try {
+      const parsedUser = JSON.parse(storedUser) as {
+        id?: string | number;
+        userId?: string | number;
+      };
+
+      return parsedUser.userId?.toString() ?? parsedUser.id?.toString() ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleStartInterview = async () => {
+    setStartError(null);
+
+    //const userId = getStoredUserId();
+    const userId = "12345"; ////temp id until auth is implemented
+    /*if (!userId) {
+      setStartError("User ID is missing. Please sign in again before starting the interview.");
+      return;
+    }*/
+
+    setIsStartingInterview(true);
+
+    try {
+      const res = await sendJobDetails({
+        userId,
+        jobRole,
+        skills,
+        difficulty,
+      });
+
+      const sessionId = String(res?.id ?? res?.sessionId ?? res?.interviewId ?? userId);
+
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("interviewSessionId", sessionId);
+      }
+
+      router.push("/interview-room");
+    } catch (err) {
+      setStartError("Unable to start the interview right now. Please try again.");
+    } finally {
+      setIsStartingInterview(false);
+    }
+  };
 
   const stepVariants = {
     hidden: { opacity: 0, x: 20 },
@@ -134,12 +204,15 @@ export default function InterviewSetupPage() {
               ) : (
                 <>
                   {canStartInterview ? (
-                    <Link
-                      href="/interview-room"
-                      className="flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                    <button
+                      type="button"
+                      onClick={handleStartInterview}
+                      disabled={isStartingInterview}
+                      className="flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-80"
                     >
-                      <PlayCircle className="h-5 w-5" /> Start Interview
-                    </Link>
+                      <PlayCircle className="h-5 w-5" />
+                      {isStartingInterview ? "Starting..." : "Start Interview"}
+                    </button>
                   ) : (
                     <button
                       type="button"
@@ -152,6 +225,12 @@ export default function InterviewSetupPage() {
                 </>
               )}
             </div>
+
+            {startError && (
+              <p className="mt-4 text-sm text-red-600">
+                {startError}
+              </p>
+            )}
           </div>
         </div>
       </main>
