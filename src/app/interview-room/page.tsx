@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createVideoStreamClient, type VideoStreamClient } from "@/services/video_ws";
 
 const MOCK_SCRIPT = [
   {
@@ -41,6 +42,7 @@ export default function InterviewRoom() {
   const [timeLeft, setTimeLeft] = useState(15 * 60);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isAiSpeaking, setIsAiSpeaking] = useState(true);
+  const [isStartingInterview, setIsStartingInterview] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [emotion, setEmotion] = useState("");
   const [confidence, setConfidence] = useState(0);
@@ -51,76 +53,112 @@ export default function InterviewRoom() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const videoStreamRef = useRef<VideoStreamClient | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const transcriptIdRef = useRef(0);
   const scriptStartedRef = useRef(false);
   const scriptTimeoutsRef = useRef<number[]>([]);
-  const predictionRetryAfterRef = useRef(0);
-  const predictionApiUrl =
-    process.env.NEXT_PUBLIC_PREDICTION_API_URL ?? "/api/";
+  const interviewSessionIdRef = useRef<string | null>(null);
 
-  // EMOTION DETECTION
-  const captureAndSendFrame = async () => {
-  if (!videoRef.current) return;
-  if (Date.now() < predictionRetryAfterRef.current) return;
-  if (videoRef.current.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-  if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) return;
+  const handleVideoMessage = async (message: {
+    emotion?: string;
+    confidence?: number;
+  }) => {
+    console.log("[WS] Raw message:", message);
+    console.log("Video streaming response:", message);
+    setIsStartingInterview(false);
 
-  const canvas = document.createElement("canvas");
-  canvas.width = videoRef.current.videoWidth;
-  canvas.height = videoRef.current.videoHeight;
-
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-
-  ctx.drawImage(videoRef.current, 0, 0);
-
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, "image/jpeg")
-  );
-
-  if (!blob) return;
-
-  const formData = new FormData();
-  formData.append("file", blob, "frame.jpg");
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(predictionApiUrl, {
-      method: "POST",
-      body: formData,
-      signal: controller.signal,
-    });
-    window.clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      throw new Error(`Prediction API failed with ${res.status}`);
+    if (typeof message.emotion === "string") {
+      setEmotion(message.emotion);
     }
 
-    const data = await res.json();
-    setEmotion(data.emotion);
-    setConfidence(data.confidence);
-    if (predictionError) {
-      setPredictionError(null);
+    if (typeof message.confidence === "number") {
+      setConfidence(message.confidence);
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Prediction request failed";
-    predictionRetryAfterRef.current = Date.now() + 10000;
-    setPredictionError((prev) => (prev === message ? prev : message));
-  }
-};
-useEffect(() => {
-  const interval = setInterval(() => {
-    captureAndSendFrame();
-  }, 2000); // every 2 seconds
+  };
 
-  return () => clearInterval(interval);
-}, []);
-  // CAMERA
+  const captureAndSendFrame = async (client: VideoStreamClient) => {
+    const video = videoRef.current;
+
+    console.log(
+      "[CAPTURE] video:",
+      !!video,
+      "client:",
+      true,
+      "connected:",
+      client.isConnected(),
+      "readyState:",
+      video?.readyState
+    );
+
+    if (!video || !client.isConnected()) return;
+    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+    if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0);
+
+    const base64Frame = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+
+    if (!base64Frame) return;
+
+    try {
+      await client.sendFrame(base64Frame);
+      if (predictionError) {
+        setPredictionError(null);
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Video websocket streaming failed";
+      setPredictionError((prev) => (prev === message ? prev : message));
+    }
+  };
+
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const sessionId = window.sessionStorage.getItem("interviewSessionId");
+    interviewSessionIdRef.current = sessionId;
+
+    if (!sessionId) {
+      setIsStartingInterview(false);
+      setPredictionError("Missing interview session. Start a session before streaming video.");
+      return;
+    }
+
     let stream: MediaStream | null = null;
     let mounted = true;
+    let interval: number | null = null;
+    let isCleanedUp = false;
+
+    const client = createVideoStreamClient({
+      sessionId,
+      onOpen: () => {
+        setPredictionError(null);
+      },
+      onMessage: handleVideoMessage,
+      onError: (error) => {
+        if (isCleanedUp) return;
+        setIsStartingInterview(false);
+        const message =
+          error instanceof Error ? error.message : "Video websocket connection failed";
+        setPredictionError(message);
+      },
+      onClose: () => {
+        if (isCleanedUp) return;
+        setIsStartingInterview(false);
+      },
+    });
+
+    videoStreamRef.current = client;
 
     const startCamera = async () => {
       try {
@@ -128,17 +166,88 @@ useEffect(() => {
           video: { facingMode: "user" },
           audio: true,
         });
-        streamRef.current = stream;
-        if (videoRef.current && mounted) {
-          videoRef.current.srcObject = stream;
-          // Ensure video plays
-          try {
-            await videoRef.current.play();
-          } catch (playError) {
-            console.warn("Video autoplay failed, user interaction may be required:", playError);
-          }
+
+        if (!mounted) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
         }
+
+        let retries = 0;
+        while (!videoRef.current && retries < 20) {
+          await new Promise((resolve) => window.setTimeout(resolve, 100));
+          retries += 1;
+        }
+
+        if (!videoRef.current) {
+          console.error("[CAMERA] videoRef never became available");
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+
+        videoRef.current.srcObject = stream;
+        console.log("[CAMERA] srcObject set, readyState:", videoRef.current.readyState);
+
+        await new Promise<void>((resolve) => {
+          const video = videoRef.current;
+
+          if (!video) {
+            resolve();
+            return;
+          }
+
+          if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            resolve();
+            return;
+          }
+
+          video.addEventListener("canplay", () => resolve(), { once: true });
+        });
+
+        try {
+          await videoRef.current.play();
+        } catch (playError) {
+          console.warn("Video autoplay failed, user interaction may be required:", playError);
+        }
+
+        await new Promise<void>((resolve) => {
+          if (client.isConnected()) {
+            resolve();
+            return;
+          }
+
+          let waited = 0;
+          const poll = window.setInterval(() => {
+            waited += 100;
+
+            if (client.isConnected()) {
+              window.clearInterval(poll);
+              resolve();
+              return;
+            }
+
+            if (waited >= 10000) {
+              window.clearInterval(poll);
+              resolve();
+            }
+          }, 100);
+        });
+
+        if (!mounted) {
+          return;
+        }
+
+        console.log("[CAPTURE] Camera and WS ready, starting interval");
+
+        interval = window.setInterval(() => {
+          void captureAndSendFrame(client);
+        }, 2000);
       } catch (error) {
+        if (isCleanedUp) {
+          return;
+        }
+
         const err = error as DOMException;
         console.error("Camera error:", err.name, err.message);
         let errorMsg = "Camera unavailable";
@@ -159,10 +268,16 @@ useEffect(() => {
 
     return () => {
       mounted = false;
+      isCleanedUp = true;
+      if (interval !== null) {
+        window.clearInterval(interval);
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
+      client.close();
+      videoStreamRef.current = null;
     };
   }, []);
 
@@ -474,7 +589,12 @@ useEffect(() => {
 
         <div className="p-4 bg-white border-t border-neutral-100">
           <div className="flex items-center gap-3 px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-500">
-            {isAiSpeaking ? (
+            {isStartingInterview ? (
+              <>
+                <Mic className="w-4 h-4 text-neutral-400" />
+                starting interview...
+              </>
+            ) : isAiSpeaking ? (
               <>
                 <Bot className="w-4 h-4 text-indigo-600" />
                 AI is speaking...
