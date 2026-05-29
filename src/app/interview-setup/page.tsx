@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, PlayCircle } from "lucide-react";
 
@@ -16,22 +15,15 @@ import CameraPreview from "@/components/interview/CameraPreview";
 import ProgressIndicator from "@/components/interview/ProgressIndicator";
 import { sendJobDetails } from "@/services/jobdesc";
 
-import {
-  generateInterviewQuestion,
-  DifficultyLevel,
-} from "@/services/interview_services";
-
 export default function InterviewSetupPage() {
   const router = useRouter();
 
   const [step, setStep] = useState(1);
   const totalSteps = 2;
-  const router = useRouter();
 
   const [jobRole, setJobRole] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
-  const [difficulty, setDifficulty] =
-    useState<DifficultyLevel>("intermediate");
+  const [difficulty, setDifficulty] = useState<"easy" | "intermediate" | "hard">("intermediate");
 
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [micEnabled, setMicEnabled] = useState(false);
@@ -39,78 +31,12 @@ export default function InterviewSetupPage() {
   const [startError, setStartError] = useState<string | null>(null);
   const [questionsReady, setQuestionsReady] = useState(false);
 
-  const [isGenerating, setIsGenerating] = useState(false);
-
   const handleNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    }
+    if (step < totalSteps) setStep(step + 1);
   };
 
   const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
-
-  const handleStartInterview = async () => {
-    setIsGenerating(true);
-
-    try {
-      const data = await generateInterviewQuestion({
-        jobRole,
-        skills,
-        difficulty,
-      });
-
-      router.push(
-        `/interview-room?question=${encodeURIComponent(data.question)}`
-      );
-    } catch (error) {
-      console.error("Interview generation failed:", error);
-
-      // fallback navigation
-      router.push("/interview-room");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const isStep1Valid =
-    jobRole.trim().length > 2 && skills.length > 0;
-
-  const canStartInterview =
-    cameraEnabled && micEnabled;
-
-  const getStoredUserId = () => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    const directKeys = ["userId", "user_id", "id"];
-
-    for (const key of directKeys) {
-      const storedValue = window.localStorage.getItem(key);
-      if (storedValue) {
-        return storedValue;
-      }
-    }
-
-    const storedUser = window.localStorage.getItem("user");
-    if (!storedUser) {
-      return null;
-    }
-
-    try {
-      const parsedUser = JSON.parse(storedUser) as {
-        id?: string | number;
-        userId?: string | number;
-      };
-
-      return parsedUser.userId?.toString() ?? parsedUser.id?.toString() ?? null;
-    } catch {
-      return null;
-    }
+    if (step > 1) setStep(step - 1);
   };
 
   const handleStartInterview = async () => {
@@ -118,7 +44,7 @@ export default function InterviewSetupPage() {
     const userId = "12345"; // temp until auth
 
     setIsStartingInterview(true);
-    setQuestionsReady(false); // 🔴 false while waiting for questions
+    setQuestionsReady(false);
 
     try {
       const res = await sendJobDetails({
@@ -128,8 +54,6 @@ export default function InterviewSetupPage() {
         difficulty,
       });
 
-      // At this point, backend has already generated questions
-      // and returned them in interview_context
       const sessionId = String(
         res?.session_id ?? res?.id ?? res?.sessionId ?? userId
       );
@@ -145,7 +69,7 @@ export default function InterviewSetupPage() {
         );
       }
 
-      setQuestionsReady(true); // ✅ true only after questions are back
+      setQuestionsReady(true);
       router.push("/interview-room");
 
     } catch (err) {
@@ -155,6 +79,9 @@ export default function InterviewSetupPage() {
       setIsStartingInterview(false);
     }
   };
+
+  const isStep1Valid = jobRole.trim().length > 2 && skills.length > 0;
+  const canStartInterview = cameraEnabled && micEnabled;
 
   const stepVariants = {
     hidden: { opacity: 0, x: 20 },
@@ -195,10 +122,7 @@ export default function InterviewSetupPage() {
           </div>
 
           <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.05)] border border-neutral-200 p-6 md:p-10">
-            <ProgressIndicator
-              currentStep={step}
-              totalSteps={totalSteps}
-            />
+            <ProgressIndicator currentStep={step} totalSteps={totalSteps} />
 
             <div className="min-h-[350px]">
               <AnimatePresence mode="wait">
@@ -211,20 +135,9 @@ export default function InterviewSetupPage() {
                     exit="exit"
                     className="space-y-8"
                   >
-                    <JobRoleInput
-                      value={jobRole}
-                      onChange={setJobRole}
-                    />
-
-                    <SkillsInput
-                      skills={skills}
-                      onChange={setSkills}
-                    />
-
-                    <DifficultySelector
-                      value={difficulty}
-                      onChange={setDifficulty}
-                    />
+                    <JobRoleInput value={jobRole} onChange={setJobRole} />
+                    <SkillsInput skills={skills} onChange={setSkills} />
+                    <DifficultySelector value={difficulty} onChange={setDifficulty} />
                   </motion.div>
                 )}
 
@@ -279,17 +192,13 @@ export default function InterviewSetupPage() {
                 <>
                   {canStartInterview ? (
                     <button
-type="button"
-onClick={handleStartInterview}
-disabled={isGenerating || isStartingInterview}
-className="flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
->
-  <PlayCircle className="h-5 w-5" />
-  {isStartingInterview
-    ? "Starting..."
-    : isGenerating
-      ? "Generating..."
-      : "Start Interview"}
+                      type="button"
+                      onClick={handleStartInterview}
+                      disabled={isStartingInterview}
+                      className="flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white rounded-xl text-sm font-bold hover:bg-neutral-800 shadow-md hover:shadow-xl transition-all transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <PlayCircle className="h-5 w-5" />
+                      {isStartingInterview ? "Starting..." : "Start Interview"}
                     </button>
                   ) : (
                     <button
@@ -306,8 +215,12 @@ className="flex items-center gap-2 px-8 py-3.5 bg-neutral-900 text-white rounded
             </div>
 
             {startError && (
-              <p className="mt-4 text-sm text-red-600">
-                {startError}
+              <p className="mt-4 text-sm text-red-600">{startError}</p>
+            )}
+
+            {isStartingInterview && !questionsReady && (
+              <p className="mt-3 text-sm text-neutral-400 text-center">
+                ⏳ Generating your interview questions...
               </p>
             )}
           </div>
