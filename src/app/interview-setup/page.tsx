@@ -28,6 +28,7 @@ export default function InterviewSetupPage() {
   const [micEnabled, setMicEnabled] = useState(false);
   const [isStartingInterview, setIsStartingInterview] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [questionsReady, setQuestionsReady] = useState(false);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -77,15 +78,10 @@ export default function InterviewSetupPage() {
 
   const handleStartInterview = async () => {
     setStartError(null);
-
-    //const userId = getStoredUserId();
-    const userId = "12345"; ////temp id until auth is implemented
-    /*if (!userId) {
-      setStartError("User ID is missing. Please sign in again before starting the interview.");
-      return;
-    }*/
+    const userId = "12345"; // temp until auth
 
     setIsStartingInterview(true);
+    setQuestionsReady(false); // 🔴 false while waiting for questions
 
     try {
       const res = await sendJobDetails({
@@ -95,15 +91,29 @@ export default function InterviewSetupPage() {
         difficulty,
       });
 
-      const sessionId = String(res?.id ?? res?.sessionId ?? res?.interviewId ?? userId);
+      // At this point, backend has already generated questions
+      // and returned them in interview_context
+      const sessionId = String(
+        res?.session_id ?? res?.id ?? res?.sessionId ?? userId
+      );
+      const questions = res?.questions ?? [];
+
+      console.log("Questions received from backend:", questions);
 
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem("interviewSessionId", sessionId);
+        window.sessionStorage.setItem(
+          "interviewQuestions",
+          JSON.stringify(questions)
+        );
       }
 
+      setQuestionsReady(true); // ✅ true only after questions are back
       router.push("/interview-room");
+
     } catch (err) {
       setStartError("Unable to start the interview right now. Please try again.");
+      setQuestionsReady(false);
     } finally {
       setIsStartingInterview(false);
     }
