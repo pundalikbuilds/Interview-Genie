@@ -10,6 +10,40 @@ interface CameraPreviewProps {
   onMicToggle: (enabled: boolean) => void;
 }
 
+/**
+ * Pick the best camera device — prefers the built-in laptop webcam.
+ * Filters out virtual cameras, phone cameras, and OBS/capture devices
+ * by checking the device label for common keywords.
+ */
+async function getBuiltinCameraId(): Promise<string | undefined> {
+  try {
+    // Must request permission first before labels are available
+    const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    tempStream.getTracks().forEach((t) => t.stop());
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((d) => d.kind === "videoinput");
+
+    // Keywords that indicate non-laptop cameras
+    const externalKeywords = [
+      "iphone", "ipad", "android", "phone", "continuity",
+      "obs", "virtual", "capture", "droidcam", "epoccam",
+      "snap camera", "mmhmm",
+    ];
+
+    // Prefer a camera whose label does NOT contain external keywords
+    const builtIn = cameras.find((cam) => {
+      const label = cam.label.toLowerCase();
+      return !externalKeywords.some((kw) => label.includes(kw));
+    });
+
+    // Fall back to first available camera
+    return builtIn?.deviceId ?? cameras[0]?.deviceId;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function CameraPreview({
   cameraEnabled,
   micEnabled,
@@ -24,10 +58,17 @@ export default function CameraPreview({
   useEffect(() => {
     const startCamera = async () => {
       try {
+        const deviceId = await getBuiltinCameraId();
+
+        const videoConstraint = deviceId
+          ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          : { width: { ideal: 1280 }, height: { ideal: 720 } };
+
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
+          video: videoConstraint,
           audio: false,
         });
+
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -45,9 +86,7 @@ export default function CameraPreview({
 
     const stopCamera = () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => {
-          track.stop();
-        });
+        streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
       if (videoRef.current) {
@@ -61,25 +100,17 @@ export default function CameraPreview({
       stopCamera();
     }
 
-    return () => {
-      stopCamera();
-    };
+    return () => { stopCamera(); };
   }, [cameraEnabled]);
 
   useEffect(() => {
     navigator.mediaDevices
       .enumerateDevices()
       .then((devices) => {
-        const hasMic = devices.some((device) => device.kind === 'audioinput');
+        const hasMic = devices.some((device) => device.kind === "audioinput");
         setMicAvailable(hasMic);
       })
-      .catch((error) => {
-        const err = error as DOMException;
-        if (err.name === "NotAllowedError") {
-          console.warn("Permission to enumerate devices denied");
-        }
-        setMicAvailable(false);
-      });
+      .catch(() => setMicAvailable(false));
   }, []);
 
   return (
@@ -120,48 +151,30 @@ export default function CameraPreview({
 
       {/* Media Controls */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Camera Toggle */}
         <button
-          onClick={() => {
-            if (cameraAvailable) {
-              onCameraToggle(!cameraEnabled);
-            }
-          }}
+          onClick={() => { if (cameraAvailable) onCameraToggle(!cameraEnabled); }}
           disabled={!cameraAvailable}
           className={`flex items-center justify-center gap-2 px-4 py-4 rounded-xl font-bold transition-all duration-300 ${
             cameraEnabled
-              ? 'bg-neutral-900 border-2 border-neutral-900 text-white'
-              : 'bg-white border-2 border-neutral-200 text-neutral-600 hover:border-neutral-300'
-          } ${!cameraAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              ? "bg-neutral-900 border-2 border-neutral-900 text-white"
+              : "bg-white border-2 border-neutral-200 text-neutral-600 hover:border-neutral-300"
+          } ${!cameraAvailable ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
-          <Camera
-            className={`h-5 w-5 transition-transform ${
-              cameraEnabled ? 'scale-110' : ''
-            }`}
-          />
-          <span className="text-sm">{cameraEnabled ? 'Camera On' : 'Enable Camera'}</span>
+          <Camera className={`h-5 w-5 transition-transform ${cameraEnabled ? "scale-110" : ""}`} />
+          <span className="text-sm">{cameraEnabled ? "Camera On" : "Enable Camera"}</span>
         </button>
 
-        {/* Microphone Toggle */}
         <button
-          onClick={() => {
-            if (micAvailable) {
-              onMicToggle(!micEnabled);
-            }
-          }}
+          onClick={() => { if (micAvailable) onMicToggle(!micEnabled); }}
           disabled={!micAvailable}
           className={`flex items-center justify-center gap-2 px-4 py-4 rounded-xl font-bold transition-all duration-300 ${
             micEnabled
-              ? 'bg-neutral-900 border-2 border-neutral-900 text-white'
-              : 'bg-white border-2 border-neutral-200 text-neutral-600 hover:border-neutral-300'
-          } ${!micAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              ? "bg-neutral-900 border-2 border-neutral-900 text-white"
+              : "bg-white border-2 border-neutral-200 text-neutral-600 hover:border-neutral-300"
+          } ${!micAvailable ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
-          <Mic
-            className={`h-5 w-5 transition-transform ${
-              micEnabled ? 'scale-110' : ''
-            }`}
-          />
-          <span className="text-sm">{micEnabled ? 'Mic On' : 'Enable Mic'}</span>
+          <Mic className={`h-5 w-5 transition-transform ${micEnabled ? "scale-110" : ""}`} />
+          <span className="text-sm">{micEnabled ? "Mic On" : "Enable Mic"}</span>
         </button>
       </div>
 
@@ -173,7 +186,6 @@ export default function CameraPreview({
             <span>Camera not found or permission denied.</span>
           </div>
         )}
-
         {!micAvailable && (
           <div className="flex items-center gap-2 text-xs font-medium text-amber-700 px-4 py-3 bg-amber-50 rounded-lg border border-amber-200">
             <AlertCircle className="h-4 w-4" />
