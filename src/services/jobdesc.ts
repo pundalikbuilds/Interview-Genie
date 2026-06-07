@@ -5,10 +5,12 @@ export type JobDetailsPayload = {
   difficulty: "easy" | "intermediate" | "hard";
 };
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
 export async function sendJobDetails(payload: JobDetailsPayload) {
   console.log("Sending job details:", payload);
 
-  const response = await fetch("http://localhost:8000/api/sessions", {
+  const response = await fetch(`${API_BASE}/sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -20,7 +22,8 @@ export async function sendJobDetails(payload: JobDetailsPayload) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create interview");
+    const errorBody = await response.text();
+    throw new Error(errorBody || "Failed to create interview");
   }
 
   return response.json();
