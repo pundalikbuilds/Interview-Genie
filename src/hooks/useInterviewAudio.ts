@@ -173,11 +173,16 @@ export function useInterviewAudio({
     setIsTranscribing(true);
     try {
       const wav = buildWav(samples, SAMPLE_RATE);
-      return await postTranscribe(wav, sessionId);  // from audio_ws.ts
+      const res = await postTranscribe(wav, sessionId);  // from audio_ws.ts
+      // `postTranscribe` returns an object { transcript, decision, ... }.
+      // Ensure we return a plain string for the UI.
+      if (!res) return "";
+      if (typeof res === "string") return res;
+      return (res.transcript as string) ?? "";
     } finally {
       setIsTranscribing(false);
     }
-  }, []);
+  }, [sessionId]);
 
   // ── Public: full flow for one question ───────────────────────────────────
   const startQuestion = useCallback(async (questionText: string): Promise<void> => {
