@@ -7,16 +7,49 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
+function makeWsUrl(): string {
+  if (!API_BASE) throw new Error("API_BASE not configured")
+  // convert http(s) -> ws(s)
+  if (API_BASE.startsWith("https://")) return API_BASE.replace(/^https:/, "wss:") + "/audio/ws"
+  if (API_BASE.startsWith("http://")) return API_BASE.replace(/^http:/, "ws:") + "/audio/ws"
+  // fallback
+  return API_BASE + "/audio/ws"
+}
+
 /**
  * Fetch TTS audio from backend.
  * Returns a Blob (audio/wav) ready to be played via new Audio().
  */
 export async function fetchSpeakAudio(text: string): Promise<Blob> {
-  const res = await fetch(
-    `${API_BASE}/audio/speak?text=${encodeURIComponent(text)}`
-  );
-  if (!res.ok) throw new Error(`TTS failed: ${res.status}`);
-  return res.blob();
+  const wsUrl = makeWsUrl();
+  return await new Promise<Blob>((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = "arraybuffer";
+    ws.onerror = (ev) => reject(new Error("WebSocket error"));
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: "speak", text }));
+    };
+    ws.onmessage = (ev) => {
+      if (typeof ev.data === "string") {
+        // JSON error or control — treat as error
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg?.type === "error") {
+            reject(new Error(msg.detail || "TTS error"));
+            ws.close();
+          }
+        } catch (e) {
+          // ignore
+        }
+        return;
+      }
+      // binary audio frame
+      const ab = ev.data as ArrayBuffer;
+      const blob = new Blob([ab], { type: "audio/wav" });
+      resolve(blob);
+      ws.close();
+    };
+  });
 }
 
 /**
@@ -26,17 +59,44 @@ export async function fetchSpeakAudio(text: string): Promise<Blob> {
 export async function postTranscribe(
   wavBuffer: ArrayBuffer,
   sessionId?: string,
-): Promise<string> {
-  const url = sessionId
-    ? `${API_BASE}/audio/transcribe?session_id=${encodeURIComponent(sessionId)}`
-    : `${API_BASE}/audio/transcribe`;
-
-  const res = await fetch(url, {
-    method:  "POST",
-    headers: { "Content-Type": "audio/wav" },
-    body:    wavBuffer,
+  question?: string,
+): Promise<{ transcript: string; decision?: string; next_question?: string; clarifying_question?: string }> {
+  const wsUrl = makeWsUrl();
+  return await new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = "arraybuffer";
+    ws.onerror = () => reject(new Error("WebSocket error"));
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: "audio_meta", session_id: sessionId, question }));
+      ws.send(wavBuffer);
+    };
+    ws.onmessage = async (ev) => {
+      if (typeof ev.data === "string") {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === "result") {
+            resolve({
+              transcript: msg.transcript,
+              decision: msg.decision,
+              next_question: msg.next_question,
+              clarifying_question: msg.clarifying_question,
+            });
+            ws.close();
+            return;
+          }
+          if (msg.type === "error") {
+            reject(new Error(msg.detail || "Transcription error"));
+            ws.close();
+            return;
+          }
+        } catch (e) {
+          reject(new Error("Invalid server response"));
+          ws.close();
+          return;
+        }
+      } else {
+        // unexpected binary
+      }
+    };
   });
-  if (!res.ok) throw new Error(`Transcription failed: ${res.status}`);
-  const data = await res.json() as { transcript: string };
-  return data.transcript;
 }
