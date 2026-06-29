@@ -3,11 +3,12 @@
  * ===============================
  * React hook — owns mic recording state and orchestrates the full flow:
  *   speak → record → transcribe
- * Imports pure API calls from services/audio_ws.ts
+ * Talks to the backend through the persistent client from services/audio_ws.ts
+ * instead of opening a new socket per request.
  */
 
-import { useCallback, useRef, useState } from "react";
-import { fetchSpeakAudio, postTranscribe } from "@/services/audio_ws";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createAudioStreamClient, type AudioStreamClient } from "@/services/audio_ws";
 
 const SAMPLE_RATE      = 16000;
 const SILENCE_MS       = 3000;
@@ -29,6 +30,11 @@ export interface InterviewAudioState {
   startQuestion:  (questionText: string) => Promise<void>;
 }
 
+// One slot each — this hook only ever has a single speak-or-transcribe
+// request in flight at a time, since startQuestion runs the steps in order.
+type PendingAudio  = { resolve: () => void; reject: (err: Error) => void };
+type PendingResult = { resolve: (transcript: string) => void; reject: (err: Error) => void };
+
 export function useInterviewAudio({
   onTranscript,
   onError,
@@ -38,10 +44,79 @@ export function useInterviewAudio({
   const [isRecording,    setIsRecording]     = useState(false);
   const [isTranscribing, setIsTranscribing]  = useState(false);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const recordedChunks  = useRef<Float32Array[]>([]);
-  const isRecordingRef  = useRef(false);
-  const silenceTimerRef = useRef<number | null>(null);
+  const audioContextRef   = useRef<AudioContext | null>(null);
+  const recordedChunks    = useRef<Float32Array[]>([]);
+  const isRecordingRef    = useRef(false);
+  const silenceTimerRef   = useRef<number | null>(null);
+
+  const clientRef         = useRef<AudioStreamClient | null>(null);
+  const pendingAudioRef    = useRef<PendingAudio | null>(null);
+  const pendingResultRef   = useRef<PendingResult | null>(null);
+  const currentQuestionRef = useRef<string>("");
+
+  // ── Play a WAV blob and resolve when playback finishes ───────────────────
+  const playBlob = (blob: Blob): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      const url   = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Playback failed")); };
+      audio.play().catch(reject);
+    });
+  };
+
+  // ── Set up the persistent connection once ────────────────────────────────
+  useEffect(() => {
+    const client = createAudioStreamClient({
+      sessionId,
+      onError: (err) => {
+        const message = err instanceof Error ? err.message : "Audio websocket error";
+        // Fail whichever request is currently in flight.
+        pendingAudioRef.current?.reject(new Error(message));
+        pendingAudioRef.current = null;
+        pendingResultRef.current?.reject(new Error(message));
+        pendingResultRef.current = null;
+        onError?.(message);
+      },
+      onAudio: async (blob) => {
+        const pending = pendingAudioRef.current;
+        if (!pending) return; // unsolicited frame (e.g. backend's auto next-question audio) — ignored for now
+        pendingAudioRef.current = null;
+        try {
+          await playBlob(blob);
+          pending.resolve();
+        } catch (err) {
+          pending.reject(err instanceof Error ? err : new Error("Playback failed"));
+        }
+      },
+      onMessage: (message) => {
+        if (message.type === "error") {
+          const err = new Error(typeof message.detail === "string" ? message.detail : "Audio error");
+          pendingAudioRef.current?.reject(err);
+          pendingAudioRef.current = null;
+          pendingResultRef.current?.reject(err);
+          pendingResultRef.current = null;
+          return;
+        }
+        if (message.type === "result") {
+          const pending = pendingResultRef.current;
+          if (!pending) return;
+          pendingResultRef.current = null;
+          pending.resolve(typeof message.transcript === "string" ? message.transcript : "");
+          return;
+        }
+        // "question" messages for an auto-advanced next question are sent
+        // separately by the backend after "result" — not consumed here yet.
+      },
+    });
+    clientRef.current = client;
+
+    return () => {
+      client.close();
+      clientRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   // ── Utility: Float32 PCM → WAV ArrayBuffer ────────────────────────────────
   const buildWav = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
@@ -71,29 +146,28 @@ export function useInterviewAudio({
     return buffer;
   };
 
-  // ── Phase 1: Speak ────────────────────────────────────────────────────────
-  const speakQuestion = useCallback(async (text: string): Promise<void> => {
-    console.log("[useInterviewAudio] fetching TTS for:", text.slice(0, 60));
-    setIsAiSpeaking(true);
-    try {
-      const blob = await fetchSpeakAudio(text);
-      console.log("[useInterviewAudio] TTS blob received, size:", blob.size);
-      const url   = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      await new Promise<void>((resolve, reject) => {
-        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.onerror = (e) => { URL.revokeObjectURL(url); console.error("[useInterviewAudio] audio playback error:", e); reject(new Error("Playback failed")); };
-        audio.play().then(() => console.log("[useInterviewAudio] audio playing...")).catch(reject);
-      });
-      console.log("[useInterviewAudio] TTS playback finished");
-    } finally {
-      setIsAiSpeaking(false);
-    }
+  // ── Phase 1: Speak (via persistent client) ────────────────────────────────
+  const speakQuestion = useCallback((text: string): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      const client = clientRef.current;
+      if (!client) { reject(new Error("Audio connection not ready")); return; }
+
+      currentQuestionRef.current = text;
+      pendingAudioRef.current = { resolve, reject };
+      setIsAiSpeaking(true);
+
+      try {
+        client.speak(text);
+      } catch (err) {
+        pendingAudioRef.current = null;
+        reject(err instanceof Error ? err : new Error("Speak failed"));
+      }
+    }).finally(() => setIsAiSpeaking(false));
   }, []);
 
-  // ── Phase 2: Record until silence ─────────────────────────────────────────
+  // ── Phase 2: Record until silence (unchanged — purely local mic capture) ──
   const recordAnswer = useCallback((): Promise<Float32Array> => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise<Float32Array>(async (resolve, reject) => {
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -168,40 +242,37 @@ export function useInterviewAudio({
     });
   }, []);
 
-  // ── Phase 3: Transcribe ───────────────────────────────────────────────────
-  const transcribeAudio = useCallback(async (samples: Float32Array): Promise<string> => {
-    setIsTranscribing(true);
-    try {
+  // ── Phase 3: Send answer + get transcript (via persistent client) ────────
+  const sendAnswerAndTranscribe = useCallback((samples: Float32Array): Promise<string> => {
+    return new Promise<string>((resolve, reject) => {
+      const client = clientRef.current;
+      if (!client) { reject(new Error("Audio connection not ready")); return; }
+
       const wav = buildWav(samples, SAMPLE_RATE);
-      const res = await postTranscribe(wav, sessionId);  // from audio_ws.ts
-      // `postTranscribe` returns an object { transcript, decision, ... }.
-      // Ensure we return a plain string for the UI.
-      if (!res) return "";
-      if (typeof res === "string") return res;
-      return (res.transcript as string) ?? "";
-    } finally {
-      setIsTranscribing(false);
-    }
+      pendingResultRef.current = { resolve, reject };
+      setIsTranscribing(true);
+
+      try {
+        client.sendAnswer(wav, sessionId, currentQuestionRef.current);
+      } catch (err) {
+        pendingResultRef.current = null;
+        reject(err instanceof Error ? err : new Error("Send answer failed"));
+      }
+    }).finally(() => setIsTranscribing(false));
   }, [sessionId]);
 
   // ── Public: full flow for one question ───────────────────────────────────
   const startQuestion = useCallback(async (questionText: string): Promise<void> => {
-    console.log("[useInterviewAudio] startQuestion called with:", questionText);
     try {
-      console.log("[useInterviewAudio] → speaking question...");
       await speakQuestion(questionText);
-      console.log("[useInterviewAudio] → speaking done, opening mic...");
       const samples = await recordAnswer();
-      console.log("[useInterviewAudio] → recording done, samples length:", samples.length);
-      const transcript = await transcribeAudio(samples);
-      console.log("[useInterviewAudio] → transcript:", transcript);
+      const transcript = await sendAnswerAndTranscribe(samples);
       if (transcript) onTranscript(transcript);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Audio error";
-      console.error("[useInterviewAudio] ERROR:", err);
       onError?.(message);
     }
-  }, [speakQuestion, recordAnswer, transcribeAudio, onTranscript, onError]);
+  }, [speakQuestion, recordAnswer, sendAnswerAndTranscribe, onTranscript, onError]);
 
   return { isAiSpeaking, isRecording, isTranscribing, startQuestion };
 }
