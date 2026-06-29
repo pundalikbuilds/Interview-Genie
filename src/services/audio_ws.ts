@@ -7,7 +7,6 @@
  * opening a fresh socket per request.
  */
 
-
 type AudioStreamMessage = {
     type?: string;
     transcript?: string;
@@ -40,8 +39,12 @@ export type AudioStreamClient = {
     speak: (text: string) => void;
     /** Start the interview; first question audio/text arrives via onAudio/onMessage. */
     start: (sessionId?: string) => void;
-    /** Send a recorded answer (WAV bytes) for transcription + evaluation. */
-    sendAnswer: (wavBuffer: ArrayBuffer, sessionId?: string, question?: string) => void;
+    /** Tell the server a new answer is about to be streamed. */
+    startRecording: (question?: string, sessionId?: string) => void;
+    /** Stream one raw PCM chunk (16-bit mono) as it's captured — call repeatedly. */
+    sendChunk: (pcmBuffer: ArrayBuffer) => void;
+    /** Signal that the candidate stopped speaking; triggers transcription + evaluation. */
+    endRecording: () => void;
     close: () => void;
     isConnected: () => boolean;
 };
@@ -158,11 +161,16 @@ export function createAudioStreamClient({
         start(overrideSessionId?: string) {
             send({ type: "start", session_id: overrideSessionId ?? sessionId });
         },
-        sendAnswer(wavBuffer: ArrayBuffer, overrideSessionId?: string, question?: string) {
-            send({ type: "audio_meta", session_id: overrideSessionId ?? sessionId, question });
+        startRecording(question?: string, overrideSessionId?: string) {
+            send({ type: "record_start", session_id: overrideSessionId ?? sessionId, question });
+        },
+        sendChunk(pcmBuffer: ArrayBuffer) {
             if (socket.readyState === WebSocket.OPEN) {
-                socket.send(wavBuffer);
+                socket.send(pcmBuffer);
             }
+        },
+        endRecording() {
+            send({ type: "answer_end" });
         },
         close() {
             isManuallyClosed = true;

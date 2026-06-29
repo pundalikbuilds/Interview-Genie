@@ -45,7 +45,6 @@ export function useInterviewAudio({
   const [isTranscribing, setIsTranscribing]  = useState(false);
 
   const audioContextRef   = useRef<AudioContext | null>(null);
-  const recordedChunks    = useRef<Float32Array[]>([]);
   const isRecordingRef    = useRef(false);
   const silenceTimerRef   = useRef<number | null>(null);
 
@@ -118,33 +117,19 @@ export function useInterviewAudio({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  // ── Utility: Float32 PCM → WAV ArrayBuffer ────────────────────────────────
-  const buildWav = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
-    const buffer = new ArrayBuffer(44 + samples.length * 2);
-    const view   = new DataView(buffer);
-    const str    = (offset: number, s: string) => {
-      for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
-    };
-    str(0, "RIFF");
-    view.setUint32(4,  36 + samples.length * 2, true);
-    str(8, "WAVE"); str(12, "fmt ");
-    view.setUint32(16, 16,             true);
-    view.setUint16(20, 1,              true);
-    view.setUint16(22, 1,              true);
-    view.setUint32(24, sampleRate,     true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2,              true);
-    view.setUint16(34, 16,             true);
-    str(36, "data");
-    view.setUint32(40, samples.length * 2, true);
-    let offset = 44;
+  // ── Utility: Float32 chunk → Int16 PCM ArrayBuffer (for streaming) ───────
+  const float32ToPcm16 = (samples: Float32Array): ArrayBuffer => {
+    const buffer = new ArrayBuffer(samples.length * 2);
+    const view = new DataView(buffer);
     for (let i = 0; i < samples.length; i++) {
       const s = Math.max(-1, Math.min(1, samples[i]));
-      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-      offset += 2;
+      view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
     }
     return buffer;
   };
+
+  // (buildWav removed — the backend now assembles the WAV from streamed
+  // PCM chunks itself; see audio_ws.py's _pcm_to_wav.)
 
   // ── Phase 1: Speak (via persistent client) ────────────────────────────────
   const speakQuestion = useCallback((text: string): Promise<void> => {
@@ -165,9 +150,16 @@ export function useInterviewAudio({
     }).finally(() => setIsAiSpeaking(false));
   }, []);
 
-  // ── Phase 2: Record until silence (unchanged — purely local mic capture) ──
-  const recordAnswer = useCallback((): Promise<Float32Array> => {
-    return new Promise<Float32Array>(async (resolve, reject) => {
+  // ── Phase 2: Record + stream chunks live, end with answer_end ────────────
+  // Combines what used to be two separate steps (record locally, then send
+  // the whole WAV) into one: every chunk is streamed to the backend as it's
+  // captured, and silence-detection (still local, for low latency) triggers
+  // an "answer_end" message instead of building/sending a WAV file.
+  const recordAndTranscribe = useCallback((): Promise<string> => {
+    return new Promise<string>(async (resolve, reject) => {
+      const client = clientRef.current;
+      if (!client) { reject(new Error("Audio connection not ready")); return; }
+
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -179,7 +171,6 @@ export function useInterviewAudio({
       audioContextRef.current = ctx;
       const source    = ctx.createMediaStreamSource(stream);
       const processor = ctx.createScriptProcessor(4096, 1, 1);
-      recordedChunks.current = [];
 
       let calibrating   = true;
       let calRms: number[] = [];
@@ -187,6 +178,38 @@ export function useInterviewAudio({
       let speechStarted = false;
       let silenceMs     = 0;
       const calEnd      = Date.now() + CALIBRATION_MS;
+      let ended         = false;
+
+      const finishRecording = () => {
+        if (ended) return;
+        ended = true;
+        isRecordingRef.current = false;
+        setIsRecording(false);
+        processor.disconnect();
+        source.disconnect();
+        stream.getTracks().forEach((t) => t.stop());
+        ctx.close();
+
+        // The "result" message (carrying the transcript) resolves this promise.
+        pendingResultRef.current = { resolve, reject };
+        setIsTranscribing(true);
+        try {
+          client.endRecording();
+        } catch (err) {
+          pendingResultRef.current = null;
+          reject(err instanceof Error ? err : new Error("Failed to end recording"));
+        }
+      };
+
+      // Tell the backend a new answer is starting, before any chunks arrive.
+      try {
+        client.startRecording(currentQuestionRef.current, sessionId);
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error("Failed to start recording"));
+        stream.getTracks().forEach((t) => t.stop());
+        ctx.close();
+        return;
+      }
 
       processor.onaudioprocess = (e) => {
         const samples = new Float32Array(e.inputBuffer.getChannelData(0));
@@ -205,7 +228,8 @@ export function useInterviewAudio({
           return;
         }
 
-        recordedChunks.current.push(samples);
+        // Stream this chunk immediately — no local buffering.
+        client.sendChunk(float32ToPcm16(samples));
 
         if (rmsInt > threshold) {
           speechStarted = true;
@@ -217,47 +241,13 @@ export function useInterviewAudio({
         } else if (speechStarted) {
           silenceMs += (samples.length / SAMPLE_RATE) * 1000;
           if (silenceMs >= SILENCE_MS && silenceTimerRef.current === null) {
-            silenceTimerRef.current = window.setTimeout(() => {
-              if (!isRecordingRef.current) return;
-              isRecordingRef.current = false;
-              setIsRecording(false);
-              processor.disconnect();
-              source.disconnect();
-              stream.getTracks().forEach((t) => t.stop());
-              ctx.close();
-              const total  = recordedChunks.current.reduce((n, c) => n + c.length, 0);
-              const merged = new Float32Array(total);
-              let off = 0;
-              for (const chunk of recordedChunks.current) {
-                merged.set(chunk, off); off += chunk.length;
-              }
-              resolve(merged);
-            }, 0);
+            silenceTimerRef.current = window.setTimeout(finishRecording, 0);
           }
         }
       };
 
       source.connect(processor);
       processor.connect(ctx.destination);
-    });
-  }, []);
-
-  // ── Phase 3: Send answer + get transcript (via persistent client) ────────
-  const sendAnswerAndTranscribe = useCallback((samples: Float32Array): Promise<string> => {
-    return new Promise<string>((resolve, reject) => {
-      const client = clientRef.current;
-      if (!client) { reject(new Error("Audio connection not ready")); return; }
-
-      const wav = buildWav(samples, SAMPLE_RATE);
-      pendingResultRef.current = { resolve, reject };
-      setIsTranscribing(true);
-
-      try {
-        client.sendAnswer(wav, sessionId, currentQuestionRef.current);
-      } catch (err) {
-        pendingResultRef.current = null;
-        reject(err instanceof Error ? err : new Error("Send answer failed"));
-      }
     }).finally(() => setIsTranscribing(false));
   }, [sessionId]);
 
@@ -265,14 +255,13 @@ export function useInterviewAudio({
   const startQuestion = useCallback(async (questionText: string): Promise<void> => {
     try {
       await speakQuestion(questionText);
-      const samples = await recordAnswer();
-      const transcript = await sendAnswerAndTranscribe(samples);
+      const transcript = await recordAndTranscribe();
       if (transcript) onTranscript(transcript);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Audio error";
       onError?.(message);
     }
-  }, [speakQuestion, recordAnswer, sendAnswerAndTranscribe, onTranscript, onError]);
+  }, [speakQuestion, recordAndTranscribe, onTranscript, onError]);
 
   return { isAiSpeaking, isRecording, isTranscribing, startQuestion };
 }
