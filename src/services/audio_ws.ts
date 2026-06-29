@@ -5,6 +5,14 @@
  * Mirrors the structure of video_ws.ts: one long-lived connection,
  * automatic reconnect, and callback-based message handling instead of
  * opening a fresh socket per request.
+ *
+ * UPDATE: backend now streams live transcription while the candidate is
+ * still speaking (via Gemini Live API input_audio_transcription), sending
+ * `{"type":"partial_transcript","transcript":"..."}` messages as each
+ * utterance is recognized — well before "answer_end" is sent and well
+ * before the final "result" message arrives. These are surfaced via a
+ * dedicated `onPartialTranscript` callback, the same way binary WAV frames
+ * get their own `onAudio` callback instead of going through `onMessage`.
  */
 
 type AudioStreamMessage = {
@@ -28,10 +36,16 @@ type CreateAudioStreamClientOptions = {
     onOpen?: () => void;
     onClose?: () => void;
     onError?: (error: Event | Error) => void;
-    /** Fires for every JSON control/result message from the server. */
+    /** Fires for every JSON control/result message from the server,
+     *  EXCEPT "partial_transcript" (see onPartialTranscript below). */
     onMessage?: (message: AudioStreamMessage) => void | Promise<void>;
     /** Fires for every binary WAV frame from the server (TTS audio). */
     onAudio?: (blob: Blob) => void | Promise<void>;
+    /** Fires for live, incremental transcript text while the candidate is
+     *  still speaking — arrives as Gemini's VAD completes each utterance,
+     *  well before "answer_end" / the final "result" message. The string
+     *  passed is the cumulative transcript so far for the current answer. */
+    onPartialTranscript?: (transcript: string) => void | Promise<void>;
 };
 
 export type AudioStreamClient = {
@@ -73,6 +87,7 @@ export function createAudioStreamClient({
     onError,
     onMessage,
     onAudio,
+    onPartialTranscript,
 }: CreateAudioStreamClientOptions = {}): AudioStreamClient {
     if (typeof window === "undefined") {
         throw new Error("Audio streaming is only available in the browser.");
@@ -108,6 +123,23 @@ export function createAudioStreamClient({
         } catch {
             parsedMessage = { type: "raw", payload: event.data };
         }
+
+        // Live, incremental transcript while the candidate is still
+        // speaking — routed to its own callback instead of onMessage so
+        // consumers don't have to switch on `type` for the high-frequency
+        // case. Everything else (result, question, error, etc.) still goes
+        // through onMessage exactly as before.
+        if (parsedMessage.type === "partial_transcript") {
+            try {
+                await onPartialTranscript?.(
+                    typeof parsedMessage.transcript === "string" ? parsedMessage.transcript : ""
+                );
+            } catch (error) {
+                onError?.(error instanceof Error ? error : new Error("Partial transcript handler failed"));
+            }
+            return;
+        }
+
         try {
             await onMessage?.(parsedMessage);
         } catch (error) {
