@@ -455,7 +455,7 @@ export default function InterviewRoom() {
         <motion.div
           initial={{ x: 400 }} animate={{ x: 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 200 }}
-          className="z-20 flex min-h-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white text-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:min-h-[calc(100vh-3rem)]"
+          className="z-20 flex h-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-white text-neutral-900 shadow-[0_20px_60px_rgba(0,0,0,0.28)] lg:h-[calc(100vh-3rem)]"
         >
           <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-2">

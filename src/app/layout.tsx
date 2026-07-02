@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
+// @ts-ignore - Next.js handles global CSS side-effect imports in app/layout.tsx.
 import "./globals.css";
 import { cn } from "@/lib/utils";
 

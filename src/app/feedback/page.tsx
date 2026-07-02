@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Briefcase, Calendar, Clock, Home, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 
 const reportData = {
   candidateName: "Aaron Wang",
@@ -148,10 +147,6 @@ export default function InterviewReport() {
                   <Clock className="w-4 h-4 text-neutral-400" />
                   <span>{reportData.duration}</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-4 h-4 text-neutral-400" />
-                  <span>No signs of unfairness detected</span>
-                </div>
               </div>
             </motion.div>
 
@@ -165,10 +160,6 @@ export default function InterviewReport() {
                 Overall Hire Score
               </h3>
               <CircularScore score={reportData.overallScore} size={120} strokeWidth={10} />
-              <div className="mt-6 flex items-center gap-2 text-sm font-bold text-neutral-900 bg-neutral-100 px-4 py-1.5 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-neutral-900" />
-                Invite to Next Round
-              </div>
             </motion.div>
           </div>
 
@@ -220,8 +211,6 @@ export default function InterviewReport() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
