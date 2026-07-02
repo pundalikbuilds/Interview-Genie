@@ -1,53 +1,43 @@
 "use client";
 
-import Link from 'next/link';
-import { Zap } from 'lucide-react';
+import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-slate-200 px-4 py-12">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-8">
+    <footer className="relative overflow-hidden border-t border-slate-200 bg-white text-slate-900">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,0,0,0.03),_transparent_45%)]" />
+      <div className="relative mx-auto max-w-screen-2xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-[1.35fr_0.85fr] md:items-start">
           <div>
-            <div className="flex items-center space-x-2 mb-4">
-              
-              <span className="text-xl font-bold text-slate-900">Interview-Genie</span>
+            <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
+              Interview-Genie
+            </Link>
+            <h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+              Build interview confidence with focused practice, live feedback, and clear results.
+            </h2>
+          </div>
+
+          <div className="flex flex-col gap-6 md:items-end md:text-right">
+            <div>
+              <p className="text-sm font-medium text-slate-900">Ready to practice now?</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Jump into the interview setup, choose your role, and start the session.
+              </p>
             </div>
-            <p className="text-slate-600">
-              AI powered mock interview platform to help you ace your next interview.
-            </p>
-          </div>
 
-          <div>
-            <h3 className="font-semibold mb-4">Product</h3>
-            <ul className="space-y-2 text-slate-600">
-              <li><Link href="/features" className="hover:text-slate-900 transition-colors">Features</Link></li>
-              <li><Link href="/pricing" className="hover:text-slate-900 transition-colors">Pricing</Link></li>
-              <li><Link href="/demo" className="hover:text-slate-900 transition-colors">Demo</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold mb-4">Company</h3>
-            <ul className="space-y-2 text-slate-600">
-              <li><Link href="/about" className="hover:text-slate-900 transition-colors">About</Link></li>
-              <li><Link href="/contact" className="hover:text-slate-900 transition-colors">Contact</Link></li>
-              <li><Link href="/careers" className="hover:text-slate-900 transition-colors">Careers</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="font-semibold mb-4">Support</h3>
-            <ul className="space-y-2 text-slate-600">
-              <li><Link href="/help" className="hover:text-slate-900 transition-colors">Help Center</Link></li>
-              <li><Link href="/privacy" className="hover:text-slate-900 transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="hover:text-slate-900 transition-colors">Terms of Service</Link></li>
-            </ul>
+            <Link
+              href="/interview-setup"
+              className="inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-slate-800"
+            >
+              Start a practice interview
+            </Link>
           </div>
         </div>
 
-        <div className="border-t border-slate-200 mt-8 pt-8 text-center text-slate-500">
-          <p>&copy; 2026 Interview-Genie. All rights reserved.</p>
+        <div className="mt-10 flex flex-col gap-6 border-t border-slate-200 pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-500">
+            &copy; 2026 Interview-Genie. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

@@ -16,13 +16,6 @@ export default function Header() {
             <span className="text-xl font-bold text-slate-900">Interview-Genie</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600">
-            <a href="#features" className="hover:text-slate-900 transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-slate-900 transition-colors">How it Works</a>
-            <a href="#pricing" className="hover:text-slate-900 transition-colors">Pricing</a>
-          </div>
-
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <Link href="/signin" className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
@@ -52,27 +45,6 @@ export default function Header() {
         {isMenuOpen && (
           <div className="md:hidden pb-4">
             <div className="px-2 pt-2 space-y-1 sm:px-3">
-              <a
-                href="#features"
-                className="block px-3 py-2 text-slate-700 hover:text-slate-900 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Features
-              </a>
-              <a
-                href="#how-it-works"
-                className="block px-3 py-2 text-slate-700 hover:text-slate-900 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                How it Works
-              </a>
-              <a
-                href="#pricing"
-                className="block px-3 py-2 text-slate-700 hover:text-slate-900 transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Pricing
-              </a>
               <div className="border-t border-gray-200 pt-3">
                 <Link
                   href="/signin"
