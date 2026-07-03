@@ -51,13 +51,16 @@ export default function InterviewRoom() {
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [isSwapped, setIsSwapped]         = useState(false);
   const [audioError, setAudioError]       = useState<string | null>(null);
+  const [interviewSessionId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.sessionStorage.getItem("interviewSessionId");
+  });
   const router = useRouter();
 
   const videoRef              = useRef<HTMLVideoElement>(null);
   const streamRef             = useRef<MediaStream | null>(null);
   const videoStreamRef        = useRef<VideoStreamClient | null>(null);
   const transcriptEndRef      = useRef<HTMLDivElement>(null);
-  const interviewSessionIdRef = useRef<string | null>(null);
   const audioStartedRef       = useRef(false);
 
   // ── Audio hook ─────────────────────────────────────────────────────────────
@@ -78,6 +81,7 @@ export default function InterviewRoom() {
     useInterviewAudio({
       onTranscript: handleTranscript,
       onError:      handleAudioError,
+      sessionId:    interviewSessionId ?? undefined,
     });
 
   // ── Add an AI bubble helper ────────────────────────────────────────────────
@@ -124,23 +128,20 @@ export default function InterviewRoom() {
 
   // ── Camera + video WebSocket ───────────────────────────────────────────────
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const sessionId = window.sessionStorage.getItem("interviewSessionId");
-    interviewSessionIdRef.current = sessionId;
-
-    if (!sessionId) {
+    if (!interviewSessionId) {
       setIsStartingInterview(false);
       setPredictionError("Missing interview session.");
       return;
     }
+
+    console.log("Session from backend:", interviewSessionId);
 
     let mounted = true;
     let interval: number | null = null;
     let isCleanedUp = false;
 
     const client = createVideoStreamClient({
-      sessionId,
+      sessionId: interviewSessionId,
       onOpen:    () => setPredictionError(null),
       onMessage: handleVideoMessage,
       onError: (error) => {
@@ -227,7 +228,7 @@ export default function InterviewRoom() {
       client.close();
       videoStreamRef.current = null;
     };
-  }, []);
+  }, [interviewSessionId]);
 
   // ── Timer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -245,6 +246,11 @@ export default function InterviewRoom() {
 
   useEffect(() => {
     console.log("[InterviewRoom] mount effect fired, _audioFlowStarted:", _audioFlowStarted);
+
+    if (!interviewSessionId) {
+      console.log("[InterviewRoom] waiting for session id before starting audio flow");
+      return;
+    }
 
     if (_audioFlowStarted) {
       console.log("[InterviewRoom] already started — skipping");
@@ -290,7 +296,7 @@ export default function InterviewRoom() {
       });
     }, 1500);
 
-  }, []);  // empty deps — runs exactly once on mount
+  }, [interviewSessionId]);
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });

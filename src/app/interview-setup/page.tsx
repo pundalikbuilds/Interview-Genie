@@ -54,11 +54,15 @@ export default function InterviewSetupPage() {
         difficulty,
       });
 
-      const sessionId = String(
-        res?.session_id ?? res?.id ?? res?.sessionId ?? userId
-      );
+      const sessionId = res?.session_id;
+
+      if (!sessionId) {
+        throw new Error("Backend did not return a session_id");
+      }
+
       const questions = res?.questions ?? [];
 
+      console.log("Session from backend:", sessionId);
       console.log("Questions received from backend:", questions);
 
       if (typeof window !== "undefined") {
@@ -73,6 +77,7 @@ export default function InterviewSetupPage() {
       router.push("/interview-room");
 
     } catch (err) {
+      console.error("Failed to start interview:", err);
       setStartError("Unable to start the interview right now. Please try again.");
       setQuestionsReady(false);
     } finally {
