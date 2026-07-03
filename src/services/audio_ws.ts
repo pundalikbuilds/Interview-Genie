@@ -191,9 +191,11 @@ export function createAudioStreamClient({
             send({ type: "speak", text });
         },
         start(overrideSessionId?: string) {
+            console.log("Sending session_id:", overrideSessionId ?? sessionId);
             send({ type: "start", session_id: overrideSessionId ?? sessionId });
         },
         startRecording(question?: string, overrideSessionId?: string) {
+            console.log("Sending session_id:", overrideSessionId ?? sessionId);
             send({ type: "record_start", session_id: overrideSessionId ?? sessionId, question });
         },
         sendChunk(pcmBuffer: ArrayBuffer) {

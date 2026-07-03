@@ -66,6 +66,12 @@ export function useInterviewAudio({
 
   // ── Set up the persistent connection once ────────────────────────────────
   useEffect(() => {
+    console.log("Session from backend:", sessionId);
+
+    if (!sessionId) {
+      return;
+    }
+
     const client = createAudioStreamClient({
       sessionId,
       onError: (err) => {
@@ -203,6 +209,7 @@ export function useInterviewAudio({
 
       // Tell the backend a new answer is starting, before any chunks arrive.
       try {
+        console.log("Sending session_id:", sessionId);
         client.startRecording(currentQuestionRef.current, sessionId);
       } catch (err) {
         reject(err instanceof Error ? err : new Error("Failed to start recording"));
