@@ -18,9 +18,13 @@ const MAX_THRESHOLD    = 1500;
 const CALIBRATION_MS   = 500;
 
 interface UseInterviewAudioOptions {
-  onTranscript: (text: string) => void;
-  onError?:     (message: string) => void;
-  sessionId?:   string;   // when provided, transcript is stored server-side
+    onTranscript: (text: string) => void;
+    onError?: (message: string) => void;
+
+    // NEW
+    onQuestion?: (question: string) => void;
+
+    sessionId?: string;
 }
 
 export interface InterviewAudioState {
@@ -37,8 +41,9 @@ type PendingResult = { resolve: (transcript: string) => void; reject: (err: Erro
 
 export function useInterviewAudio({
   onTranscript,
-  onError,
-  sessionId,
+    onError,
+    onQuestion,
+    sessionId,
 }: UseInterviewAudioOptions): InterviewAudioState {
   const [isAiSpeaking,   setIsAiSpeaking]   = useState(false);
   const [isRecording,    setIsRecording]     = useState(false);
@@ -103,11 +108,28 @@ export function useInterviewAudio({
           pendingResultRef.current = null;
           return;
         }
+
         if (message.type === "result") {
-          const pending = pendingResultRef.current;
-          if (!pending) return;
+          const transcript =
+            typeof message.transcript === "string"
+              ? message.transcript
+              : "";
+
+          console.log("Final transcript received:", transcript);
+
+          pendingResultRef.current?.resolve(transcript);
           pendingResultRef.current = null;
-          pending.resolve(typeof message.transcript === "string" ? message.transcript : "");
+
+          return;
+        }
+
+        if (message.type === "question" && typeof message.question === "string") {
+          currentQuestionRef.current = message.question;
+
+          onQuestion?.(message.question);
+
+          void startQuestionRef.current?.(message.question);
+
           return;
         }
         // "question" messages for an auto-advanced next question are sent
@@ -179,7 +201,7 @@ export function useInterviewAudio({
       const processor = ctx.createScriptProcessor(4096, 1, 1);
 
       let calibrating   = true;
-      let calRms: number[] = [];
+      const calRms: number[] = [];
       let threshold     = MIN_THRESHOLD;
       let speechStarted = false;
       let silenceMs     = 0;
@@ -270,5 +292,12 @@ export function useInterviewAudio({
     }
   }, [speakQuestion, recordAndTranscribe, onTranscript, onError]);
 
+  const startQuestionRef = useRef(startQuestion);
+
+  useEffect(() => {
+    startQuestionRef.current = startQuestion;
+  }, [startQuestion]);
+
   return { isAiSpeaking, isRecording, isTranscribing, startQuestion };
 }
+
