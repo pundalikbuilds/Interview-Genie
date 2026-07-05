@@ -64,7 +64,7 @@ export type AudioStreamClient = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-const DEFAULT_AUDIO_WS_ENDPOINT = "ws://localhost:8000/api/audio/ws";
+const DEFAULT_AUDIO_WS_ENDPOINT = "ws://localhost:8000/api/audio_ws";
 
 function normalizeWebSocketUrl(
     endpoint: string,
