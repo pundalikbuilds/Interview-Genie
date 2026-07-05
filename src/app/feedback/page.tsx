@@ -11,7 +11,8 @@ const reportData = {
   role: "Developer Intern",
   date: "Mar 5, 2024",
   duration: "9 minutes and 25 seconds",
-  overallScore: 77,
+  overallScore: 78,
+  confidenceScore: 82,
   overallFeedback:
     "Overall, Aaron has shown a decent grasp of Python and strong problem-solving abilities. His communication skills are generally clear, but there is room for improvement in professional conduct and depth of discussion. His technical knowledge and problem-solving approach are promising, but he should work on providing more detailed explanations and maintaining a professional demeanor throughout the interview process.",
   skills: [
@@ -42,57 +43,84 @@ const reportData = {
   ],
 };
 
+// Maps a 0-100 score to a qualitative label
+function getScoreLabel(score: number): string {
+  if (score >= 90) return "Excellent";
+  if (score >= 80) return "Very Good";
+  if (score >= 70) return "Good";
+  if (score >= 60) return "Average";
+  if (score >= 40) return "Poor";
+  return "Very Poor";
+}
+
 function CircularScore({
   score,
   size = 100,
   strokeWidth = 8,
+  showLabel = false,
 }: {
   score: number;
   size?: number;
   strokeWidth?: number;
+  showLabel?: boolean;
 }) {
+  const clampedScore = Math.max(0, Math.min(100, score));
+
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (score / 100) * circumference;
+  const offset = circumference - (clampedScore / 100) * circumference;
 
   return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ width: size, height: size }}
-    >
-      <svg className="absolute transform -rotate-90" width={size} height={size}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          className="text-slate-100"
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
-          className="text-neutral-900"
-          strokeLinecap="round"
-        />
-      </svg>
-      <motion.span
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.8, duration: 0.5 }}
-        className="text-2xl font-bold text-neutral-900"
+    <div className="flex flex-col items-center">
+      <div
+        className="relative flex items-center justify-center"
+        style={{ width: size, height: size }}
       >
-        {score}
-      </motion.span>
+        <svg className="absolute transform -rotate-90" width={size} height={size}>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            className="text-slate-100"
+          />
+          <motion.circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+            className="text-neutral-900"
+            strokeLinecap="round"
+          />
+        </svg>
+        <motion.span
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+          className="text-2xl font-bold text-neutral-900"
+        >
+          {clampedScore}
+        </motion.span>
+      </div>
+
+      {showLabel && (
+        <motion.span
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.4 }}
+          className="mt-3 text-xs font-semibold uppercase tracking-wider text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full"
+        >
+          {getScoreLabel(clampedScore)}
+        </motion.span>
+      )}
     </div>
   );
 }
@@ -122,11 +150,12 @@ export default function InterviewReport() {
         </div>
 
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start mb-12">
+          <div className="flex flex-col md:flex-row md:items-start mb-12 gap-6">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
+              className="md:flex-1"
             >
               <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-6">
                 Interview Report for{" "}
@@ -150,17 +179,31 @@ export default function InterviewReport() {
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="bg-white p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-neutral-200 flex flex-col items-center min-w-[240px] mt-8 md:mt-0"
-            >
-              <h3 className="text-sm font-bold text-neutral-800 mb-6">
-                Overall Hire Score
-              </h3>
-              <CircularScore score={reportData.overallScore} size={120} strokeWidth={10} />
-            </motion.div>
+            <div className="flex flex-col sm:flex-row gap-4 mt-8 md:mt-0 md:ml-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="bg-white p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-neutral-200 flex flex-col items-center min-w-[240px]"
+              >
+                <h3 className="text-sm font-bold text-neutral-800 mb-6">
+                  Overall Score
+                </h3>
+                <CircularScore score={78} size={120} strokeWidth={10} showLabel />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="bg-white p-8 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-neutral-200 flex flex-col items-center min-w-[240px]"
+              >
+                <h3 className="text-sm font-bold text-neutral-800 mb-6">
+                  Confidence Score
+                </h3>
+                <CircularScore score={39} size={120} strokeWidth={10} showLabel />
+              </motion.div>
+            </div>
           </div>
 
           <motion.div
