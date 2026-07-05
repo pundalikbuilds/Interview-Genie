@@ -64,18 +64,30 @@ export type AudioStreamClient = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-const DEFAULT_AUDIO_WS_ENDPOINT = "ws://localhost:8000/api/audio/ws";
+const DEFAULT_AUDIO_WS_ENDPOINT =
+"ws://localhost:8000/api/audio_ws";
 
-function normalizeWebSocketUrl(endpoint: string): string {
-    // Allow a bare path (e.g. "/api/audio/ws") to resolve against API_BASE,
-    // same convention as before but using URL for correctness.
-    const base = endpoint.startsWith("ws://") || endpoint.startsWith("wss://") || endpoint.startsWith("http")
-        ? endpoint
-        : `${API_BASE ?? ""}${endpoint}`;
+function normalizeWebSocketUrl(
+    endpoint: string,
+    sessionId?: string
+): string {
+    const url = new URL(
+        endpoint,
+        typeof window !== "undefined"
+            ? window.location.origin
+            : undefined
+    );
 
-    const url = new URL(base, typeof window !== "undefined" ? window.location.origin : undefined);
-    if (url.protocol === "http:") url.protocol = "ws:";
-    else if (url.protocol === "https:") url.protocol = "wss:";
+    if (url.protocol === "http:") {
+        url.protocol = "ws:";
+    } else if (url.protocol === "https:") {
+        url.protocol = "wss:";
+    }
+
+    if (sessionId) {
+        url.searchParams.set("sessionId", sessionId);
+    }
+
     return url.toString();
 }
 
@@ -120,6 +132,7 @@ export function createAudioStreamClient({
         let parsedMessage: AudioStreamMessage;
         try {
             parsedMessage = JSON.parse(event.data) as AudioStreamMessage;
+            console.log("WS MESSAGE:", JSON.stringify(parsedMessage, null, 2));
         } catch {
             parsedMessage = { type: "raw", payload: event.data };
         }
@@ -130,13 +143,13 @@ export function createAudioStreamClient({
         // case. Everything else (result, question, error, etc.) still goes
         // through onMessage exactly as before.
         if (parsedMessage.type === "partial_transcript") {
-            try {
                 await onPartialTranscript?.(
-                    typeof parsedMessage.transcript === "string" ? parsedMessage.transcript : ""
-                );
-            } catch (error) {
-                onError?.(error instanceof Error ? error : new Error("Partial transcript handler failed"));
-            }
+            typeof parsedMessage.text === "string"
+            ? parsedMessage.text
+            : typeof parsedMessage.transcript === "string"
+                ? parsedMessage.transcript
+                : ""
+            );
             return;
         }
 
@@ -173,7 +186,7 @@ export function createAudioStreamClient({
                 setTimeout(() => {
                     if (isManuallyClosed) return;
                     try {
-                        socket = new WebSocket(normalizeWebSocketUrl(endpoint));
+                        socket = new WebSocket(normalizeWebSocketUrl(endpoint, sessionId));
                         setupSocketListeners();
                     } catch {
                         // let the outer close handler schedule the next reconnect
@@ -183,7 +196,7 @@ export function createAudioStreamClient({
         });
     }
 
-    socket = new WebSocket(normalizeWebSocketUrl(endpoint));
+    socket = new WebSocket(normalizeWebSocketUrl(endpoint, sessionId));
     setupSocketListeners();
 
     return {

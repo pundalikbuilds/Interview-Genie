@@ -80,8 +80,13 @@ export default function InterviewRoom() {
   const { isAiSpeaking, isRecording, isTranscribing, startQuestion } =
     useInterviewAudio({
       onTranscript: handleTranscript,
-      onError:      handleAudioError,
-      sessionId:    interviewSessionId ?? undefined,
+      onError: handleAudioError,
+
+       onQuestion: (question) => {
+        addAiBubble(question);
+    },
+
+    sessionId: interviewSessionId ?? undefined,
     });
 
   // ── Add an AI bubble helper ────────────────────────────────────────────────
