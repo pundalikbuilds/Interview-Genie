@@ -5,9 +5,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, type Variants } from 'framer-motion';
 import {
   Bot, CheckCircle, Mic2, PlayCircle, ArrowRight,
-  Mic, Camera, FileText, Activity, Code2, LineChart,
+  Mic, Camera, Activity, Code2, LineChart,
 } from 'lucide-react';
-import Header from '@/components/Header';
+import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 
 // ==========================================
@@ -170,7 +170,7 @@ function AiNeuralBackground() {
 }
 
 // ==========================================
-// EXPANDABLE SPOTLIGHT CARD
+// EXPANDABLE SPOTLIGHT CARD (FEATURES)
 // ==========================================
 function ExpandableFeatureCard({
   children,
@@ -207,16 +207,16 @@ function ExpandableFeatureCard({
       onMouseLeave={() => setSpotlightOpacity(0)}
       animate={{
         minHeight:    isHovered ? '220px' : '100px',
-        borderRadius: isHovered ? '32px' : '24px',
+        borderRadius: '0px',
         scale:        isHovered ? 1.02 : isOthersHovered ? 0.95 : 1,
         filter:       isOthersHovered ? 'blur(2px)' : 'blur(0px)',
         opacity:      isOthersHovered ? 0.5 : 1,
         zIndex:       isHovered ? 50 : 1,
       }}
       transition={{ type: 'spring', bounce: 0.3, duration: 0.6 }}
-      className={`relative overflow-hidden border border-neutral-200 bg-white p-8 transition-colors hover:bg-neutral-50/80 ${className} ${
+      className={`relative overflow-hidden border border-neutral-300 rounded-none bg-white p-8 transition-colors hover:bg-neutral-50/80 ${className} ${
         isHovered
-          ? 'shadow-[0_30px_80px_-15px_rgba(0,0,0,0.15)] border-neutral-300'
+          ? 'shadow-[0_30px_80px_-15px_rgba(0,0,0,0.15)] border-neutral-400'
           : 'shadow-sm'
       }`}
     >
@@ -237,6 +237,112 @@ function ExpandableFeatureCard({
 }
 
 // ==========================================
+// TECH STACK SCROLLING MARQUEE
+// ==========================================
+const frontendStack = [
+  { name: "Next.js", category: "Framework" },
+  { name: "React", category: "Frontend" },
+  { name: "TypeScript", category: "Language" },
+  { name: "Tailwind CSS", category: "Styling" },
+  { name: "Framer Motion", category: "Animation" },
+  { name: "react-rnd", category: "Draggable UI" },
+  { name: "lucide-react", category: "Icons" },
+];
+
+const backendStack = [
+  { name: "FastAPI", category: "Backend" },
+  { name: "LangGraph", category: "Orchestration" },
+  { name: "Gemini API", category: "LLM / TTS" },
+  { name: "Qwen3-8B (LoRA)", category: "Evaluation Model" },
+  { name: "YOLOv8", category: "Emotion Detection" },
+  { name: "PyTorch", category: "ML Runtime" },
+  { name: "OpenCV", category: "Computer Vision" },
+  { name: "WebSockets", category: "Real-time Streaming" },
+];
+
+function TechStackSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
+
+  return (
+    <section 
+      ref={sectionRef} 
+      className="relative py-24 lg:py-32 bg-white overflow-hidden border-t border-neutral-100 z-20"
+    >
+      <motion.div style={{ opacity }} className="max-w-[1400px] mx-auto px-6 lg:px-12 mb-16 lg:mb-24">
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto">
+          <span className="inline-flex items-center gap-3 text-sm font-mono text-neutral-400 mb-6 uppercase tracking-widest font-bold">
+            <span className="w-8 h-px bg-neutral-200" />
+            Tech Stack
+            <span className="w-8 h-px bg-neutral-200" />
+          </span>
+          <h2 className="text-4xl lg:text-6xl font-bold tracking-tighter leading-tight mb-6 text-neutral-900">
+            Powered by modern <br />
+            <span className="text-neutral-400 font-light italic">technologies.</span>
+          </h2>
+        </div>
+      </motion.div>
+
+      {/* Row 1: Frontend (Right to Left) */}
+      <div className="w-full mb-6 flex overflow-hidden">
+        <motion.div
+          className="flex gap-6 whitespace-nowrap px-3 will-change-transform"
+          animate={{ x: ["0%", "-50%"] }}
+          transition={{ ease: "linear", duration: 80, repeat: Infinity }}
+        >
+          {[...frontendStack, ...frontendStack].map((tech, idx) => (
+            <div
+              key={`front-${tech.name}-${idx}`}
+              className="shrink-0 w-64 px-8 py-6 bg-white border border-neutral-900 shadow-sm rounded-none hover:bg-neutral-50 hover:shadow-md transition-all duration-300 group cursor-default"
+            >
+              <div className="text-lg font-bold text-neutral-900 group-hover:translate-x-1 transition-transform">
+                {tech.name}
+              </div>
+              <div className="text-sm font-mono text-neutral-400 mt-1">
+                {tech.category}
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+
+      {/* Row 2: Backend / AI (Left to Right) */}
+      <div className="w-full flex overflow-hidden">
+        <motion.div
+          className="flex gap-6 whitespace-nowrap px-3 will-change-transform"
+          animate={{ x: ["-50%", "0%"] }}
+          transition={{ ease: "linear", duration: 90, repeat: Infinity }}
+        >
+          {[...backendStack, ...backendStack].map((tech, idx) => (
+            <div
+              key={`back-${tech.name}-${idx}`}
+              className="shrink-0 w-64 px-8 py-6 bg-neutral-50/50 border border-neutral-900 shadow-sm rounded-none hover:bg-neutral-100 hover:shadow-md transition-all duration-300 group cursor-default"
+            >
+              <div className="text-lg font-bold text-neutral-900 group-hover:-translate-x-1 transition-transform">
+                {tech.name}
+              </div>
+              <div className="text-sm font-mono text-neutral-400 mt-1">
+                {tech.category}
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+      
+      {/* Gradient fades on the edges */}
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-white to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-white to-transparent" />
+    </section>
+  );
+}
+
+// ==========================================
 // MAIN HOME PAGE
 // ==========================================
 export default function Home() {
@@ -246,12 +352,17 @@ export default function Home() {
     offset: ['start start', 'end start'],
   });
 
-  const yText       = useTransform(scrollYProgress, [0, 1],   [0, 100]);
-  const opacityText = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const scaleImg    = useTransform(scrollYProgress, [0, 1],   [1, 1.1]);
-  const yImg        = useTransform(scrollYProgress, [0, 1],   [0, -50]);
-  const rotateX     = useTransform(scrollYProgress, [0, 1],   [60, 0]);
-  const rotateZ     = useTransform(scrollYProgress, [0, 1],   [-45, 0]);
+  // PARALLAX TEXT (Y movement applied to parent)
+  const yText = useTransform(scrollYProgress, [0, 1], [0, 100]);
+  
+  // BUTTON ONLY TRANSFORMS (Waits until 60% scroll before fading and fully blurs/hides by 90%)
+  const buttonOpacity = useTransform(scrollYProgress, [0, 0.6, 0.9], [1, 1, 0]);
+  const buttonFilter  = useTransform(scrollYProgress, [0, 0.6, 0.9], ['blur(0px)', 'blur(0px)', 'blur(12px)']);
+  
+  const scaleImg = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
+  const yImg     = useTransform(scrollYProgress, [0, 1], [0, -50]);
+  const rotateX  = useTransform(scrollYProgress, [0, 1], [60, 0]);
+  const rotateZ  = useTransform(scrollYProgress, [0, 1], [-45, 0]);
 
   const [hoveredCardIndex, setHoveredCardIndex] = useState<number | null>(null);
 
@@ -274,21 +385,18 @@ export default function Home() {
         ref={heroRef}
         className="relative min-h-[88vh] flex items-center pt-28 pb-10 overflow-hidden border-b border-neutral-100"
       >
-        {/* GRAYSCALE NEURAL DATA BACKGROUND */}
         <AiNeuralBackground />
 
         <div className="max-w-screen-2xl mx-auto px-6 grid lg:grid-cols-2 gap-16 lg:gap-24 items-center relative z-10">
 
-          {/* Hero Text */}
+          {/* PARENT TEXT WRAPPER - No opacity/filter here anymore, just Y movement */}
           <motion.div
-            style={{ y: yText, opacity: opacityText }}
+            style={{ y: yText }}
             className="relative z-20 max-w-2xl"
             variants={containerVariants}
             initial="hidden"
             animate="show"
           >
-            
-
             <motion.h1
               variants={itemVariants}
               className="mt-2 text-7xl lg:text-9xl font-bold tracking-tighter leading-[0.85] mb-8"
@@ -305,7 +413,12 @@ export default function Home() {
               answers before the real interview.
             </motion.p>
 
-            <motion.div variants={itemVariants} className="flex gap-4">
+            {/* BUTTON WRAPPER - Transforms applied exclusively here */}
+            <motion.div 
+              variants={itemVariants} 
+              style={{ opacity: buttonOpacity, filter: buttonFilter }} 
+              className="flex gap-4"
+            >
               <Link
                 href="/interview-setup"
                 className="group px-8 py-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl flex items-center gap-3 transition-all hover:pl-10 shadow-lg shadow-neutral-200"
@@ -320,7 +433,6 @@ export default function Home() {
             </motion.div>
           </motion.div>
 
-          {/* Isometric Dashboard (Parallax) */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -336,7 +448,6 @@ export default function Home() {
                 className="absolute inset-0 bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-neutral-200"
                 style={{ transformStyle: 'preserve-3d' }}
               >
-                {/* Main Interface Window */}
                 <div
                   className="absolute top-8 left-8 right-8 bottom-32 bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden flex flex-col"
                   style={{ transform: 'translateZ(40px)' }}
@@ -366,7 +477,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Floating Metric: Response Score */}
                 <motion.div
                   animate={{ y: [0, -15, 0] }}
                   transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}
@@ -387,7 +497,6 @@ export default function Home() {
                   </div>
                 </motion.div>
 
-                {/* Floating Metric: Speech Clarity */}
                 <motion.div
                   animate={{ y: [0, 15, 0] }}
                   transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut', delay: 1 }}
@@ -413,7 +522,6 @@ export default function Home() {
                   </div>
                 </motion.div>
 
-                {/* Floating: Live Chat */}
                 <motion.div
                   animate={{ y: [0, -10, 0] }}
                   transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut', delay: 0.5 }}
@@ -444,6 +552,11 @@ export default function Home() {
       <section className="pt-16 pb-24 bg-white border-t border-neutral-100 relative z-20">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-14 lg:mb-16">
+            <span className="inline-flex items-center gap-3 text-sm font-mono text-neutral-400 mb-12 uppercase tracking-widest font-bold">
+              <span className="w-8 h-px bg-neutral-200" />
+              Capabilities
+              <span className="w-8 h-px bg-neutral-200" />
+            </span>
             <h2 className="text-4xl md:text-7xl font-bold tracking-tighter leading-[0.88] text-neutral-900">
               BUILT TO <br /> IMPROVE RESULTS.
             </h2>
@@ -453,14 +566,13 @@ export default function Home() {
             className="grid grid-cols-1 gap-6"
             onMouseLeave={() => setHoveredCardIndex(null)}
           >
-            {/* Card 1 — Role-Specific Practice */}
             <ExpandableFeatureCard
               index={0}
               hoveredIndex={hoveredCardIndex}
               onHover={() => setHoveredCardIndex(0)}
             >
               <div className="flex flex-col md:flex-row md:items-center gap-6 h-full">
-                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-xl flex items-center justify-center shrink-0">
+                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-none flex items-center justify-center shrink-0">
                   <Code2 className="w-6 h-6" />
                 </motion.div>
                 <motion.div layout className="flex-1">
@@ -483,14 +595,13 @@ export default function Home() {
               </div>
             </ExpandableFeatureCard>
 
-            {/* Card 2 — Facial Emotion Detection */}
             <ExpandableFeatureCard
               index={1}
               hoveredIndex={hoveredCardIndex}
               onHover={() => setHoveredCardIndex(1)}
             >
               <div className="flex flex-col md:flex-row md:items-center gap-6 h-full">
-                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-xl flex items-center justify-center shrink-0">
+                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-none flex items-center justify-center shrink-0">
                   <Camera className="w-6 h-6" />
                 </motion.div>
                 <motion.div layout className="flex-1">
@@ -513,14 +624,13 @@ export default function Home() {
               </div>
             </ExpandableFeatureCard>
 
-            {/* Card 3 — Instant Feedback */}
             <ExpandableFeatureCard
               index={2}
               hoveredIndex={hoveredCardIndex}
               onHover={() => setHoveredCardIndex(2)}
             >
               <div className="flex flex-col md:flex-row md:items-center gap-6 h-full">
-                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-xl flex items-center justify-center shrink-0">
+                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-none flex items-center justify-center shrink-0">
                   <Activity className="w-6 h-6" />
                 </motion.div>
                 <motion.div layout className="flex-1">
@@ -567,14 +677,13 @@ export default function Home() {
               </div>
             </ExpandableFeatureCard>
 
-            {/* Card 4 — Final AI Review */}
             <ExpandableFeatureCard
               index={3}
               hoveredIndex={hoveredCardIndex}
               onHover={() => setHoveredCardIndex(3)}
             >
               <div className="flex flex-col md:flex-row md:items-center gap-6 h-full">
-                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-xl flex items-center justify-center shrink-0 relative z-10">
+                <motion.div layout className="w-14 h-14 bg-neutral-900 text-white rounded-none flex items-center justify-center shrink-0 relative z-10">
                   <LineChart className="w-6 h-6" />
                 </motion.div>
                 <motion.div layout className="flex-1 relative z-10">
@@ -608,6 +717,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* TECH STACK SECTION */}
+      <TechStackSection />
 
       <Footer />
     </div>

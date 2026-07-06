@@ -13,7 +13,7 @@
     "@headlessui/react": "^2.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.34.2",
+    "framer-motion": "^12.42.2",
     "gsap": "^3.14.2",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",

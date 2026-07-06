@@ -14,7 +14,9 @@ import {
   FileText,
 } from "lucide-react";
 
-import Header from "@/components/Header";
+// FIXED: Changed to a named import using curly braces { }
+import { Header } from "@/components/Header";
+
 
 const userProfile = {
   name: "Aaron Wang",
@@ -29,7 +31,8 @@ const interviewHistory = [
     role: "Developer Intern",
     date: "Mar 5, 2024",
     duration: "9 minutes and 25 seconds",
-    overallScore: 77,
+    overallScore: 60,
+    confidenceScore: 88,
     overallFeedback:
       "Overall, Aaron has shown a decent grasp of Python and strong problem-solving abilities. His communication skills are generally clear, but there is room for improvement in professional conduct and depth of discussion. His technical knowledge and problem-solving approach are promising, but he should work on providing more detailed explanations and maintaining a professional demeanor throughout the interview process.",
   },
@@ -39,6 +42,7 @@ const interviewHistory = [
     date: "Feb 18, 2024",
     duration: "11 minutes and 2 seconds",
     overallScore: 82,
+    confidenceScore: 88,
     overallFeedback:
       "Aaron displayed strong command of React fundamentals and was able to reason clearly through component design trade-offs. His explanations of state management were well structured, though he occasionally rushed through edge cases. Overall a confident, well-communicated performance with minor room for deeper technical elaboration.",
   },
@@ -48,62 +52,39 @@ const interviewHistory = [
     date: "Jan 30, 2024",
     duration: "8 minutes and 47 seconds",
     overallScore: 64,
+    confidenceScore: 59,
     overallFeedback:
       "Aaron's statistical reasoning was reasonable but lacked precision when discussing hypothesis testing. He struggled to clearly articulate the difference between correlation and causation in his example. Communication was polite and professional throughout, but the technical depth of his answers needs improvement before the next round.",
   },
 ];
 
-function CircularScore({
+function ScoreBar({
+  label,
   score,
-  size = 100,
-  strokeWidth = 8,
+  delay = 0,
 }: {
+  label: string;
   score: number;
-  size?: number;
-  strokeWidth?: number;
+  delay?: number;
 }) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (score / 100) * circumference;
+  const clampedScore = Math.max(0, Math.min(100, score));
 
   return (
-    <div
-      className="relative flex items-center justify-center"
-      style={{ width: size, height: size }}
-    >
-      <svg className="absolute transform -rotate-90" width={size} height={size}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          className="text-slate-100"
+    <div className="flex items-center gap-4">
+      <span className="w-24 shrink-0 text-sm font-medium text-neutral-500">
+        {label}
+      </span>
+      <div className="relative h-3 flex-1 min-w-[220px] overflow-hidden rounded-full bg-neutral-100">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${clampedScore}%` }}
+          transition={{ duration: 1, ease: "easeOut", delay }}
+          className="h-full rounded-full bg-neutral-900"
         />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
-          className="text-neutral-900"
-          strokeLinecap="round"
-        />
-      </svg>
-      <motion.span
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.8, duration: 0.5 }}
-        className="text-2xl font-bold text-neutral-900"
-      >
-        {score}
-      </motion.span>
+      </div>
+      <span className="w-10 shrink-0 rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-center text-sm font-semibold text-neutral-800">
+        {clampedScore}
+      </span>
     </div>
   );
 }
@@ -135,7 +116,7 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
           <div className="mb-12 flex flex-col items-start justify-between gap-8 md:flex-row">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -200,28 +181,50 @@ export default function UserDashboard() {
                   transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
                   className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-[0_12px_30px_rgba(0,0,0,0.06)]"
                 >
-                  <div className="flex items-start justify-between gap-6">
-                    <div className="flex-1">
-                      <div className="mb-3 flex items-center gap-3">
-                        <Briefcase className="h-4 w-4 text-neutral-400" />
-                        <h3 className="text-xl font-bold text-neutral-800">
-                          {interview.role}
-                        </h3>
-                      </div>
-                      <div className="space-y-2 text-sm text-neutral-600">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="h-4 w-4 text-neutral-400" />
-                          <span>{interview.date}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Clock className="h-4 w-4 text-neutral-400" />
-                          <span>{interview.duration}</span>
-                        </div>
-                      </div>
+                  <div className="flex flex-col">
+                    {/* Role Title Row */}
+                    <div className="mb-4 flex items-center gap-3">
+                      <Briefcase className="h-4 w-4 text-neutral-400" />
+                      <h3 className="text-xl font-bold text-neutral-800">
+                        {interview.role}
+                      </h3>
+                    </div>
 
+                    {/* Date and Overall Score Row */}
+                    <div className="mb-3 flex flex-col gap-4 md:flex-row md:items-center">
+                      <div className="flex w-full items-center gap-3 text-sm text-neutral-600 md:w-[280px] md:shrink-0">
+                        <Calendar className="h-4 w-4 text-neutral-400" />
+                        <span>{interview.date}</span>
+                      </div>
+                      <div className="w-full flex-1">
+                        <ScoreBar
+                          label="Overall"
+                          score={interview.overallScore}
+                          delay={0.2 + index * 0.1}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Duration and Confidence Score Row */}
+                    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
+                      <div className="flex w-full items-center gap-3 text-sm text-neutral-600 md:w-[280px] md:shrink-0">
+                        <Clock className="h-4 w-4 text-neutral-400" />
+                        <span>{interview.duration}</span>
+                      </div>
+                      <div className="w-full flex-1">
+                        <ScoreBar
+                          label="Confidence"
+                          score={interview.confidenceScore}
+                          delay={0.3 + index * 0.1}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Button Row */}
+                    <div>
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : interview.id)}
-                        className="mt-5 flex items-center gap-2 text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-600"
+                        className="flex items-center gap-2 text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-600"
                       >
                         {isExpanded ? (
                           <>
@@ -233,26 +236,24 @@ export default function UserDashboard() {
                           </>
                         )}
                       </button>
-
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          transition={{ duration: 0.3 }}
-                          className="mt-4 border-t border-neutral-200 pt-4"
-                        >
-                          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
-                            Overall Feedback
-                          </h4>
-                          <p className="text-sm leading-relaxed text-neutral-600">
-                            {interview.overallFeedback}
-                          </p>
-                        </motion.div>
-                      )}
                     </div>
-
-                    <CircularScore score={interview.overallScore} size={80} strokeWidth={7} />
                   </div>
+
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.3 }}
+                      className="mt-6 border-t border-neutral-200 pt-6"
+                    >
+                      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                        Overall Feedback
+                      </h4>
+                      <p className="text-sm leading-relaxed text-neutral-600">
+                        {interview.overallFeedback}
+                      </p>
+                    </motion.div>
+                  )}
                 </motion.div>
               );
             })}
