@@ -1,70 +1,163 @@
 "use client";
 
-import Link from 'next/link';
-import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
 
-export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+interface NavLink {
+  name: string;
+  href: string;
+}
+
+// Removed "Features" and "How it works" as requested.
+// Left as an empty array so you can easily add links later without breaking the layout.
+const navLinks: NavLink[] = [];
+
+export function Header() {
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <header
+      className={`fixed z-50 transition-all duration-500 ${
+        isScrolled 
+          ? "top-4 left-4 right-4" 
+          : "top-0 left-0 right-0"
+      }`}
+    >
+      <nav 
+  className={`mx-auto transition-all duration-500 ${
+    isScrolled || isMobileMenuOpen
+      // Changed bg-background/80 to bg-background/60 for reduced opacity
+      ? "bg-background/60 backdrop-blur-xl border border-foreground/10 rounded-xl shadow-lg max-w-[1300px]" 
+      : "bg-transparent max-w-[1536px]"
+  }`}
+>
+
+        
+        <div 
+          className={`flex items-center justify-between transition-all duration-500 px-6 lg:px-8 ${
+            isScrolled ? "h-14" : "h-20"
+          }`}
+        >
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-slate-900">Interview-Genie</span>
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className={`font-bold tracking-tight text-foreground transition-all duration-500 ${isScrolled ? "text-lg" : "text-xl"}`}>
+              Interview-Genie
+            </span>
           </Link>
 
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/signin" className="text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors">
-              Sign In
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-12">
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className="text-sm text-foreground/70 hover:text-foreground transition-colors duration-300 relative group"
+              >
+                {link.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-px bg-foreground transition-all duration-300 group-hover:w-full" />
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center gap-4">
+            <Link 
+              href="/signin" 
+              className={`text-foreground/70 font-medium hover:text-foreground transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}
+            >
+              Sign in
             </Link>
-            <Link
-              href="/signin"
-              className="bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all duration-200"
+            <Button
+              size="sm"
+              className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
             >
               Get Started
-            </Link>
+            </Button>
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-slate-700 hover:text-slate-900 transition-colors"
-              aria-label="Toggle navigation"
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2 text-foreground"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
+        </div>
+      </nav>
+      
+      {/* Mobile Menu - Full Screen Overlay */}
+      <div
+        className={`md:hidden fixed inset-0 bg-background z-40 transition-all duration-500 ${
+          isMobileMenuOpen 
+            ? "opacity-100 pointer-events-auto" 
+            : "opacity-0 pointer-events-none"
+        }`}
+        style={{ top: 0 }}
+      >
+        <div className="flex flex-col h-full px-8 pt-28 pb-8">
+          {/* Navigation Links */}
+          <div className="flex-1 flex flex-col justify-center gap-8">
+            {navLinks.map((link, i) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`text-5xl font-bold text-foreground hover:text-muted-foreground transition-all duration-500 ${
+                  isMobileMenuOpen 
+                    ? "opacity-100 translate-y-0" 
+                    : "opacity-0 translate-y-4"
+                }`}
+                style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : "0ms" }}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+          
+          {/* Bottom CTAs */}
+          <div 
+            className={`flex gap-4 pt-8 border-t border-foreground/10 transition-all duration-500 ${
+              isMobileMenuOpen 
+                ? "opacity-100 translate-y-0" 
+                : "opacity-0 translate-y-4"
+            }`}
+            style={{ transitionDelay: isMobileMenuOpen ? "300ms" : "0ms" }}
+          >
+            <Button 
+              variant="outline" 
+              className="flex-1 rounded-full h-14 text-base"
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+              Sign in
+            </Button>
+            <Button 
+              className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Get Started
+            </Button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden pb-4">
-            <div className="px-2 pt-2 space-y-1 sm:px-3">
-              <div className="border-t border-gray-200 pt-3">
-                <Link
-                  href="/signin"
-                  className="block px-3 py-2 text-slate-700 hover:text-slate-900 transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/signin"
-                  className="block px-3 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all duration-200 mt-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Get Started
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </nav>
+    </header>
   );
 }
+
+export default Header;
