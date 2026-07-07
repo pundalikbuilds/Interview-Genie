@@ -14,9 +14,7 @@ import {
   FileText,
 } from "lucide-react";
 
-// FIXED: Changed to a named import using curly braces { }
 import { Header } from "@/components/Header";
-
 
 const userProfile = {
   name: "Aaron Wang",
@@ -182,12 +180,14 @@ export default function UserDashboard() {
                   className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-[0_12px_30px_rgba(0,0,0,0.06)]"
                 >
                   <div className="flex flex-col">
-                    {/* Role Title Row */}
+                    {/* Role Title Row - Now a Clickable Link to Results */}
                     <div className="mb-4 flex items-center gap-3">
                       <Briefcase className="h-4 w-4 text-neutral-400" />
-                      <h3 className="text-xl font-bold text-neutral-800">
-                        {interview.role}
-                      </h3>
+                      <Link href="/results">
+                        <h3 className="text-xl font-bold text-neutral-800 hover:text-neutral-500 hover:underline transition-colors cursor-pointer">
+                          {interview.role}
+                        </h3>
+                      </Link>
                     </div>
 
                     {/* Date and Overall Score Row */}

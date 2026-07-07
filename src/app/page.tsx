@@ -11,6 +11,55 @@ import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 
 // ==========================================
+// OUTLINE TEXT (SVG stroke-only text effect)
+// ==========================================
+function OutlineText({
+  children,
+  strokeWidth = 1.5,
+  scale = 1.3,
+  className = '',
+}: {
+  children: string;
+  strokeWidth?: number;
+  scale?: number;
+  className?: string;
+}) {
+  const textRef = useRef<SVGTextElement>(null);
+  const [box, setBox] = useState({ width: 300, height: 100 });
+
+  useEffect(() => {
+    if (textRef.current) {
+      const bbox = textRef.current.getBBox();
+      setBox({ width: bbox.width + strokeWidth * 4, height: bbox.height + strokeWidth * 4 });
+    }
+  }, [children, strokeWidth]);
+
+  return (
+    <svg
+      viewBox={`0 0 ${box.width} ${box.height}`}
+      className={`inline-block align-baseline ${className}`}
+      style={{ height: `${scale}em`, width: (box.width / box.height) * scale + 'em' }}
+      preserveAspectRatio="xMinYMid meet"
+    >
+      <text
+        ref={textRef}
+        x={strokeWidth * 2}
+        y={box.height - strokeWidth * 2}
+        fontSize="90"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontWeight="700"
+        fill="none"
+        stroke="#171717"
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      >
+        {children}
+      </text>
+    </svg>
+  );
+}
+
+// ==========================================
 // NEURAL DATA STREAM ANIMATED BACKGROUND (GRAYSCALE)
 // ==========================================
 function AiNeuralBackground() {
@@ -272,7 +321,8 @@ function TechStackSection() {
   return (
     <section 
       ref={sectionRef} 
-      className="relative py-24 lg:py-32 bg-white overflow-hidden border-t border-neutral-100 z-20"
+      // Adjusted padding to reduce top gap
+      className="relative pt-12 pb-24 lg:pt-16 lg:pb-32 bg-white overflow-hidden border-t border-neutral-100 z-20"
     >
       <motion.div style={{ opacity }} className="max-w-[1400px] mx-auto px-6 lg:px-12 mb-16 lg:mb-24">
         {/* Header */}
@@ -549,7 +599,8 @@ export default function Home() {
       </section>
 
       {/* FEATURES SECTION */}
-      <section className="pt-16 pb-24 bg-white border-t border-neutral-100 relative z-20">
+      {/* Adjusted padding to reduce bottom gap */}
+      <section className="pt-16 pb-12 lg:pb-16 bg-white border-t border-neutral-100 relative z-20">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-14 lg:mb-16">
             <span className="inline-flex items-center gap-3 text-sm font-mono text-neutral-400 mb-12 uppercase tracking-widest font-bold">
@@ -558,7 +609,9 @@ export default function Home() {
               <span className="w-8 h-px bg-neutral-200" />
             </span>
             <h2 className="text-4xl md:text-7xl font-bold tracking-tighter leading-[0.88] text-neutral-900">
-              BUILT TO <br /> IMPROVE RESULTS.
+              BUILT TO <br />
+              <OutlineText strokeWidth={1.7} scale={1.13}>IMPROVE</OutlineText>{' '}
+              RESULTS.
             </h2>
           </div>
 
