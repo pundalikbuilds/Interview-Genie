@@ -41,13 +41,14 @@ export default function InterviewSetupPage() {
   const handleStartInterview = async () => {
     setStartError(null);
     const userId = "12345"; // temp until auth
-
+    const candidateName = "Aaron Wang"; // temp until auth
     setIsStartingInterview(true);
     setQuestionsReady(false);
 
     try {
       const res = await sendJobDetails({
         userId,
+        candidateName,
         jobRole,
         skills,
         difficulty,
