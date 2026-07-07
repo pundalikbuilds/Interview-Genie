@@ -1,5 +1,6 @@
 export type JobDetailsPayload = {
   userId: string;
+  candidateName: string;
   jobRole: string;
   skills: string[];
   difficulty: "easy" | "intermediate" | "hard";
