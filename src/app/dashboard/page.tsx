@@ -1,20 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import Link from "next/link";
-import {
-  Briefcase,
-  Calendar,
-  Clock,
-  Mail,
-  User as UserIcon,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-} from "lucide-react";
-
+import React from "react";
 import { Header } from "@/components/Header";
+import { UserProfileCard } from "@/components/dashboard/UserProfileCard";
+import { InterviewHistoryList } from "@/components/dashboard/InterviewHistoryList";
 
 const userProfile = {
   name: "Aaron Wang",
@@ -56,37 +45,7 @@ const interviewHistory = [
   },
 ];
 
-function ScoreBar({
-  label,
-  score,
-  delay = 0,
-}: {
-  label: string;
-  score: number;
-  delay?: number;
-}) {
-  const clampedScore = Math.max(0, Math.min(100, score));
-
-  return (
-    <div className="flex items-center gap-4">
-      <span className="w-24 shrink-0 text-sm font-medium text-neutral-500">
-        {label}
-      </span>
-      <div className="relative h-3 flex-1 min-w-[220px] overflow-hidden rounded-full bg-neutral-100">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${clampedScore}%` }}
-          transition={{ duration: 1, ease: "easeOut", delay }}
-          className="h-full rounded-full bg-neutral-900"
-        />
-      </div>
-      <span className="w-10 shrink-0 rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-center text-sm font-semibold text-neutral-800">
-        {clampedScore}
-      </span>
-    </div>
-  );
-}
-
+// Kept this from your original code in case you need to display it later
 function averageScore(history: typeof interviewHistory) {
   if (history.length === 0) return 0;
   const total = history.reduce((sum, interview) => sum + interview.overallScore, 0);
@@ -94,8 +53,6 @@ function averageScore(history: typeof interviewHistory) {
 }
 
 export default function UserDashboard() {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
   const avgScore = averageScore(interviewHistory);
 
   return (
@@ -103,6 +60,7 @@ export default function UserDashboard() {
       <Header />
 
       <main className="mx-auto max-w-7xl px-6 pb-20 pt-28">
+        {/* Page Top Header */}
         <div className="mb-10 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">
@@ -116,157 +74,12 @@ export default function UserDashboard() {
 
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 flex flex-col items-start justify-between gap-8 md:flex-row">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex-1"
-            >
-              <div className="mb-6 flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-900 text-xl font-bold text-white">
-                  {userProfile.name
-                    .split(" ")
-                    .map((name) => name[0])
-                    .join("")}
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-neutral-900 md:text-3xl">
-                    {userProfile.name}
-                  </h2>
-                </div>
-              </div>
-              <div className="space-y-3 text-sm text-neutral-600">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-neutral-400" />
-                  <span>{userProfile.email}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FileText className="h-4 w-4 text-neutral-400" />
-                  <span>{userProfile.totalInterviews} interviews completed</span>
-                </div>
-              </div>
-
-              <Link
-                href="/interview-setup"
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-neutral-800"
-              >
-                Start New Interview
-              </Link>
-            </motion.div>
+            {/* User Profile Component */}
+            <UserProfileCard userProfile={userProfile} />
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mb-6"
-          >
-            <h2 className="mb-3 text-lg font-bold text-neutral-900">Interview History</h2>
-            <p className="text-sm leading-relaxed text-neutral-600">
-              A record of your past mock interviews, scores, and feedback.
-            </p>
-          </motion.div>
-
-          <div className="flex flex-col gap-6">
-            {interviewHistory.map((interview, index) => {
-              const isExpanded = expandedId === interview.id;
-
-              return (
-                <motion.div
-                  key={interview.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
-                  className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-[0_12px_30px_rgba(0,0,0,0.06)]"
-                >
-                  <div className="flex flex-col">
-                    {/* Role Title Row - Now a Clickable Link to Results */}
-                    <div className="mb-4 flex items-center gap-3">
-                      <Briefcase className="h-4 w-4 text-neutral-400" />
-                      <Link href="/results">
-                        <h3 className="text-xl font-bold text-neutral-800 hover:text-neutral-500 hover:underline transition-colors cursor-pointer">
-                          {interview.role}
-                        </h3>
-                      </Link>
-                    </div>
-
-                    {/* Date and Overall Score Row */}
-                    <div className="mb-3 flex flex-col gap-4 md:flex-row md:items-center">
-                      <div className="flex w-full items-center gap-3 text-sm text-neutral-600 md:w-[280px] md:shrink-0">
-                        <Calendar className="h-4 w-4 text-neutral-400" />
-                        <span>{interview.date}</span>
-                      </div>
-                      <div className="w-full flex-1">
-                        <ScoreBar
-                          label="Overall"
-                          score={interview.overallScore}
-                          delay={0.2 + index * 0.1}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Duration and Confidence Score Row */}
-                    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
-                      <div className="flex w-full items-center gap-3 text-sm text-neutral-600 md:w-[280px] md:shrink-0">
-                        <Clock className="h-4 w-4 text-neutral-400" />
-                        <span>{interview.duration}</span>
-                      </div>
-                      <div className="w-full flex-1">
-                        <ScoreBar
-                          label="Confidence"
-                          score={interview.confidenceScore}
-                          delay={0.3 + index * 0.1}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Action Button Row */}
-                    <div>
-                      <button
-                        onClick={() => setExpandedId(isExpanded ? null : interview.id)}
-                        className="flex items-center gap-2 text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-600"
-                      >
-                        {isExpanded ? (
-                          <>
-                            Hide Feedback <ChevronUp className="h-4 w-4" />
-                          </>
-                        ) : (
-                          <>
-                            View Feedback <ChevronDown className="h-4 w-4" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      transition={{ duration: 0.3 }}
-                      className="mt-6 border-t border-neutral-200 pt-6"
-                    >
-                      <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-neutral-400">
-                        Overall Feedback
-                      </h4>
-                      <p className="text-sm leading-relaxed text-neutral-600">
-                        {interview.overallFeedback}
-                      </p>
-                    </motion.div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {interviewHistory.length === 0 && (
-            <div className="py-20 text-center">
-              <UserIcon className="mx-auto mb-4 h-10 w-10 text-neutral-300" />
-              <p className="text-sm text-neutral-500">
-                No interviews yet. Start your first mock interview to see your history here.
-              </p>
-            </div>
-          )}
+          {/* Interview History List Component */}
+          <InterviewHistoryList history={interviewHistory} />
         </div>
       </main>
     </div>

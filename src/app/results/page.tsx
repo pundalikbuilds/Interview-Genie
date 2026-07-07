@@ -1,18 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React from "react";
 import Link from "next/link";
-import {
-  Briefcase,
-  Calendar,
-  Clock,
-  User,
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { User } from "lucide-react"; // Using the User icon for Dashboard
 import { Header } from "@/components/Header";
+
+// Reusing the exact same components created for the feedback page
+import CandidateProfile from "@/components/feedback/CandidateProfile";
+import ScoreMetrics from "@/components/feedback/ScoreMetrics";
+import SkillsFeedback from "@/components/feedback/SkillsFeedback";
+import QnASection from "@/components/feedback/QnASection";
 
 // Mirrors your MongoDB document structure for one interview session
 const resultData = {
@@ -94,156 +91,6 @@ const resultData = {
   },
 };
 
-function getScoreLabel(score: number): string {
-  if (score >= 90) return "Excellent";
-  if (score >= 80) return "Very Good";
-  if (score >= 70) return "Good";
-  if (score >= 60) return "Average";
-  if (score >= 40) return "Poor";
-  return "Very Poor";
-}
-
-function CircularScore({
-  score,
-  size = 100,
-  strokeWidth = 8,
-  showLabel = false,
-}: {
-  score: number;
-  size?: number;
-  strokeWidth?: number;
-  showLabel?: boolean;
-}) {
-  const clampedScore = Math.max(0, Math.min(100, score));
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (clampedScore / 100) * circumference;
-
-  return (
-    <div className="flex flex-col items-center">
-      <div
-        className="relative flex items-center justify-center"
-        style={{ width: size, height: size }}
-      >
-        <svg className="absolute transform -rotate-90" width={size} height={size}>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="currentColor"
-            strokeWidth={strokeWidth}
-            fill="transparent"
-            className="text-slate-100"
-          />
-          <motion.circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke="currentColor"
-            strokeWidth={strokeWidth}
-            fill="transparent"
-            strokeDasharray={circumference}
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset: offset }}
-            transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
-            className="text-neutral-900"
-            strokeLinecap="round"
-          />
-        </svg>
-        <motion.span
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          className="text-2xl font-bold text-neutral-900"
-        >
-          {clampedScore}
-        </motion.span>
-      </div>
-
-      {showLabel && (
-        <motion.span
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 0.4 }}
-          className="mt-3 text-xs font-bold uppercase tracking-widest text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full"
-        >
-          {getScoreLabel(clampedScore)}
-        </motion.span>
-      )}
-    </div>
-  );
-}
-
-// Extracted Question Card Component to handle dropdown state
-function QuestionCard({ q, index }: { q: typeof resultData.questions[0]; index: number }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.9 + index * 0.1 }}
-      className="bg-white p-8 rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.06)] border border-neutral-200"
-    >
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div className="flex-1">
-          <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider block mb-1">
-            Question {index + 1} · {q.evaluation.category}
-          </span>
-          <h3 className="text-base font-bold text-neutral-800 leading-relaxed">
-            {q.question}
-          </h3>
-        </div>
-        <CircularScore score={q.evaluation.score} size={56} strokeWidth={5} />
-      </div>
-
-      {/* Action Button */}
-      <div>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 text-sm font-medium text-neutral-900 transition-colors hover:text-neutral-600"
-        >
-          {isExpanded ? (
-            <>
-              Hide Details <ChevronUp className="h-4 w-4" />
-            </>
-          ) : (
-            <>
-              View Details <ChevronDown className="h-4 w-4" />
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Expandable Section */}
-      {isExpanded && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.3 }}
-          className="mt-6 border-t border-neutral-200 pt-6"
-        >
-          <div className="mb-4 rounded-xl bg-neutral-50 p-4 border border-neutral-100">
-            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
-              Candidate's Answer
-            </h4>
-            <p className="text-neutral-700 leading-relaxed text-sm">{q.answer}</p>
-          </div>
-
-          <div className="rounded-xl bg-neutral-50 p-4 border border-neutral-100">
-            <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
-              Evaluation Feedback
-            </h4>
-            <p className="text-neutral-700 leading-relaxed text-sm">
-              {q.evaluation.feedback}
-            </p>
-          </div>
-        </motion.div>
-      )}
-    </motion.div>
-  );
-}
-
 export default function InterviewResults() {
   const { candidate, job, interview, questions, report } = resultData;
 
@@ -271,118 +118,17 @@ export default function InterviewResults() {
         </div>
 
         <div className="max-w-5xl mx-auto">
-          {/* Candidate + Score Cards */}
+          {/* Assembled Component 1 & 2 */}
           <div className="flex flex-col md:flex-row md:items-start mb-12 gap-6">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className="md:flex-1"
-            >
-              <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-6">
-                Interview Report for{" "}
-                <span className="text-neutral-500 italic">{candidate.name}</span>
-              </h2>
-              <div className="space-y-3 text-neutral-600 text-sm">
-                <div className="flex items-center gap-3">
-                  <Briefcase className="w-4 h-4 text-neutral-400" />
-                  <span>{job.role}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-neutral-400" />
-                  <span>{interview.date}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-neutral-400" />
-                  <span>{interview.duration}</span>
-                </div>
-              </div>
-            </motion.div>
-
-            <div className="flex flex-col sm:flex-row gap-6 mt-8 md:mt-0 md:ml-auto">
-              {/* Overall Score Card */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-neutral-100 flex flex-col items-center min-w-[220px]"
-              >
-                <h3 className="text-sm font-bold text-neutral-800 mb-6">Overall Score</h3>
-                <CircularScore score={report.overall_score} size={120} strokeWidth={10} showLabel />
-              </motion.div>
-
-              {/* Confidence Score Card */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-neutral-100 flex flex-col items-center min-w-[220px]"
-              >
-                <h3 className="text-sm font-bold text-neutral-800 mb-6">Confidence Score</h3>
-                <CircularScore score={report.confidence_score} size={120} strokeWidth={10} showLabel />
-              </motion.div>
-            </div>
+            <CandidateProfile candidate={candidate} job={job} interview={interview} />
+            <ScoreMetrics report={report} />
           </div>
 
-          {/* Overall Feedback */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mb-12"
-          >
-            <h2 className="text-lg font-bold text-neutral-900 mb-3">Overall Feedback</h2>
-            <p className="text-neutral-600 leading-relaxed text-sm">
-              {report.overall_feedback}
-            </p>
-          </motion.div>
+          {/* Assembled Component 3 */}
+          <SkillsFeedback report={report} />
 
-          {/* Skill Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {report.skills.map((skill, index) => (
-              <motion.div
-                key={skill.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
-                className="bg-white p-8 rounded-2xl shadow-[0_12px_30px_rgba(0,0,0,0.06)] border border-neutral-200"
-              >
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider block mb-1">
-                      {skill.category}
-                    </span>
-                    <h3 className="text-xl font-bold text-neutral-800">{skill.name}</h3>
-                  </div>
-                  <CircularScore score={skill.score} size={64} strokeWidth={6} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
-                    Feedback
-                  </h4>
-                  <p className="text-neutral-600 leading-relaxed text-sm">{skill.feedback}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Questions & Answers */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <MessageSquare className="w-5 h-5 text-neutral-400" />
-              <h2 className="text-lg font-bold text-neutral-900">Questions & Answers</h2>
-            </div>
-
-            <div className="flex flex-col gap-6">
-              {questions.map((q, index) => (
-                <QuestionCard key={index} q={q} index={index} />
-              ))}
-            </div>
-          </motion.div>
+          {/* Assembled Component 4 */}
+          <QnASection questions={questions} />
         </div>
       </main>
     </div>

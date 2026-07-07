@@ -10,7 +10,6 @@ interface NavLink {
   href: string;
 }
 
-// Removed "Features" and "How it works" as requested.
 // Left as an empty array so you can easily add links later without breaking the layout.
 const navLinks: NavLink[] = [];
 
@@ -36,15 +35,13 @@ export function Header() {
       }`}
     >
       <nav 
-  className={`mx-auto transition-all duration-500 ${
-    isScrolled || isMobileMenuOpen
-      // Changed bg-background/80 to bg-background/60 for reduced opacity
-      ? "bg-background/60 backdrop-blur-xl border border-foreground/10 rounded-xl shadow-lg max-w-[1300px]" 
-      : "bg-transparent max-w-[1536px]"
-  }`}
->
-
-        
+        className={`mx-auto transition-all duration-500 ${
+          isScrolled || isMobileMenuOpen
+            // Reduced opacity further to bg-background/30 for more translucency
+            ? "bg-background/30 backdrop-blur-xl border border-foreground/10 rounded-xl shadow-lg max-w-[1300px]" 
+            : "bg-transparent max-w-[1536px]"
+        }`}
+      >
         <div 
           className={`flex items-center justify-between transition-all duration-500 px-6 lg:px-8 ${
             isScrolled ? "h-14" : "h-20"
