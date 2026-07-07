@@ -7,7 +7,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, PlayCircle } from "lucide-react";
 
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import JobRoleInput from "@/components/interview/JobRoleInput";
 import SkillsInput from "@/components/interview/SkillsInput";
 import DifficultySelector from "@/components/interview/DifficultySelector";
@@ -231,8 +230,6 @@ export default function InterviewSetupPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }
