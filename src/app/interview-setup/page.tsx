@@ -7,11 +7,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, PlayCircle } from "lucide-react";
 
 import Header from "@/components/Header";
-import JobRoleInput from "@/components/interview/JobRoleInput";
-import SkillsInput from "@/components/interview/SkillsInput";
-import DifficultySelector from "@/components/interview/DifficultySelector";
-import CameraPreview from "@/components/interview/CameraPreview";
-import ProgressIndicator from "@/components/interview/ProgressIndicator";
+import JobRoleInput from "@/components/interview-setup/JobRoleInput";
+import SkillsInput from "@/components/interview-setup/SkillsInput";
+import DifficultySelector from "@/components/interview-setup/DifficultySelector";
+import CameraPreview from "@/components/interview-setup/CameraPreview";
+import ProgressIndicator from "@/components/interview-setup/ProgressIndicator";
 import { sendJobDetails } from "@/services/jobdesc";
 
 export default function InterviewSetupPage() {
