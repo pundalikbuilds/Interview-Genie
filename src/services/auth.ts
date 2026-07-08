@@ -28,7 +28,7 @@ export async function signup(
 ): Promise<AuthResponse> {
 
   const response = await fetch(
-    `${API_URL}/auth/signup`,
+    `${API_URL}/api/auth/signup`,
     {
       method: "POST",
       headers: {
@@ -57,7 +57,7 @@ export async function signin(
 ): Promise<AuthResponse> {
 
   const response = await fetch(
-    `${API_URL}/auth/signin`,
+    `${API_URL}/api/auth/signin`,
     {
       method: "POST",
       headers: {
