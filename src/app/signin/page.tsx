@@ -3,14 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { signin } from "@/services/auth";
 
 function AuthBackdrop() {
   return (
@@ -28,6 +24,7 @@ function AuthBackdrop() {
         transition={{ repeat: Infinity, duration: 40, ease: "linear" }}
         className="absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-neutral-200 opacity-60"
       />
+
       <motion.div
         animate={{ rotate: -360 }}
         transition={{ repeat: Infinity, duration: 55, ease: "linear" }}
@@ -40,7 +37,45 @@ function AuthBackdrop() {
 }
 
 export default function SignIn() {
+  const router = useRouter();
+
   const [showPassword, setShowPassword] = useState(false);
+
+  const [emailOrName, setEmailOrName] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSignin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await signin({
+        email_or_name: emailOrName,
+        password: password,
+      });
+
+      // Store authentication data
+      localStorage.setItem("access_token", response.access_token);
+
+      localStorage.setItem("user", JSON.stringify(response.user));
+
+      // Redirect after successful login
+      router.push("/dashboard");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Signin failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen w-full bg-white font-sans selection:bg-neutral-900 selection:text-white">
@@ -68,23 +103,29 @@ export default function SignIn() {
               <h1 className="mb-2 text-3xl font-bold tracking-tight text-neutral-900">
                 Welcome back
               </h1>
+
               <p className="text-sm text-neutral-500">
                 Enter your credentials to access your workspace.
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
+            <form className="space-y-4" onSubmit={handleSignin}>
               <div className="space-y-1.5">
                 <label className="ml-1 text-xs font-semibold text-neutral-700">
-                  Email Address
+                  Email or Username
                 </label>
+
                 <div className="group relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors group-focus-within:text-neutral-900">
                     <Mail size={16} />
                   </div>
+
                   <input
-                    type="email"
+                    type="text"
+                    value={emailOrName}
+                    onChange={(e) => setEmailOrName(e.target.value)}
                     placeholder="prateek@example.com"
+                    required
                     className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-10 py-2.5 text-sm outline-none transition-all placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
                   />
                 </div>
@@ -94,20 +135,27 @@ export default function SignIn() {
                 <label className="ml-1 text-xs font-semibold text-neutral-700">
                   Password
                 </label>
+
                 <div className="group relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors group-focus-within:text-neutral-900">
                     <Lock size={16} />
                   </div>
+
                   <input
                     type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
+                    required
                     className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-10 py-2.5 pr-11 text-sm outline-none transition-all placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
                   />
+
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-neutral-900"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -115,9 +163,20 @@ export default function SignIn() {
                 </div>
               </div>
 
-              <button className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white shadow-lg shadow-neutral-200 transition-all hover:bg-neutral-800">
-                Sign In
-                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+              {error && <p className="text-sm text-red-500">{error}</p>}
+
+              <button
+                disabled={loading}
+                className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white shadow-lg shadow-neutral-200 transition-all hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? "Signing in..." : "Sign In"}
+
+                {!loading && (
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
+                )}
               </button>
             </form>
 
