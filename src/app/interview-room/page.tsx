@@ -2,7 +2,7 @@
 
 import { Rnd } from "react-rnd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, Clock, Mic, PhoneOff } from "lucide-react";
+import { Bot, Mic, PhoneOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createVideoStreamClient, type VideoStreamClient } from "@/services/video_ws";
 import { useInterviewAudio } from "@/hooks/useInterviewAudio";
@@ -38,7 +38,6 @@ async function getBuiltinCameraId(): Promise<string | undefined> {
 let _audioFlowStarted = false;
 
 export default function InterviewRoom() {
-  const [timeLeft, setTimeLeft]           = useState(15 * 60);
   const [transcript, setTranscript]       = useState<TranscriptEntry[]>([]);
   const [isStartingInterview, setIsStartingInterview] = useState(true);
   const [cameraError, setCameraError]     = useState<string | null>(null);
@@ -229,14 +228,6 @@ export default function InterviewRoom() {
     };
   }, [interviewSessionId]);
 
-  // ── Timer ──────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const timer = setInterval(() => setTimeLeft((p) => (p > 0 ? p - 1 : 0)), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => { if (timeLeft === 0) router.replace("/feedback"); }, [timeLeft, router]);
-
   // ── Start audio flow once on mount ────────────────────────────────────────
   const startQuestionRef = useRef(startQuestion);
   useEffect(() => { startQuestionRef.current = startQuestion; }, [startQuestion]);
@@ -304,12 +295,6 @@ export default function InterviewRoom() {
     }
   }, [isSwapped]);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
-
   // ── Status bar label ───────────────────────────────────────────────────────
   const statusLabel = () => {
     if (isStartingInterview) return { icon: <Mic className="w-4 h-4 text-neutral-400" />, text: "Starting interview…" };
@@ -348,10 +333,6 @@ export default function InterviewRoom() {
             <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
               <span className="text-xs font-bold tracking-widest uppercase">Live Recording</span>
-            </div>
-            <div className="bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-neutral-400" />
-              <span className="font-mono text-sm font-medium">{formatTime(timeLeft)}</span>
             </div>
           </div>
 
