@@ -1,0 +1,80 @@
+const API_URL = "http://localhost:8000";
+
+interface SignupPayload {
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface LoginPayload {
+  email_or_name: string;
+  password: string;
+}
+
+interface AuthResponse {
+  message: string;
+  access_token: string;
+  token_type: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+
+export async function signup(
+  data: SignupPayload
+): Promise<AuthResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/signup`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(
+      error.detail || "Signup failed"
+    );
+  }
+
+
+  return await response.json();
+}
+
+
+
+export async function signin(
+  data: LoginPayload
+): Promise<AuthResponse> {
+
+  const response = await fetch(
+    `${API_URL}/auth/signin`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(
+      error.detail || "Login failed"
+    );
+  }
+
+
+  return await response.json();
+}

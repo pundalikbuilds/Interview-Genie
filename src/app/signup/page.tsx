@@ -13,6 +13,8 @@ import {
   Mail,
 } from "lucide-react";
 
+import { signup } from "@/services/auth";
+
 function AuthBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden bg-neutral-50">
@@ -29,6 +31,7 @@ function AuthBackdrop() {
         transition={{ repeat: Infinity, duration: 40, ease: "linear" }}
         className="absolute left-1/2 top-1/2 h-[720px] w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-neutral-200 opacity-60"
       />
+
       <motion.div
         animate={{ rotate: -360 }}
         transition={{ repeat: Infinity, duration: 55, ease: "linear" }}
@@ -42,6 +45,39 @@ function AuthBackdrop() {
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSignup(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await signup({
+        name,
+        email,
+        password,
+      });
+
+      console.log("Signup successful:", response);
+
+      localStorage.setItem("access_token", response.access_token);
+
+      // Redirect after signup
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="relative min-h-screen w-full bg-white font-sans selection:bg-neutral-900 selection:text-white">
@@ -69,56 +105,77 @@ export default function SignUp() {
               <h1 className="mb-2 text-3xl font-bold tracking-tight text-neutral-900">
                 Create an account
               </h1>
+
               <p className="text-sm text-neutral-500">
                 Start your journey to interview mastery today.
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
+            <form className="space-y-4" onSubmit={handleSignup}>
               <div className="space-y-1.5">
-                <label className="ml-1 text-xs font-semibold text-neutral-700">Full Name</label>
+                <label className="ml-1 text-xs font-semibold text-neutral-700">
+                  Full Name
+                </label>
+
                 <div className="group relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors group-focus-within:text-neutral-900">
                     <Command size={16} />
                   </div>
+
                   <input
                     type="text"
                     placeholder="Prateek Sarmalkar"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-10 py-2.5 text-sm outline-none transition-all placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="ml-1 text-xs font-semibold text-neutral-700">Email Address</label>
+                <label className="ml-1 text-xs font-semibold text-neutral-700">
+                  Email Address
+                </label>
+
                 <div className="group relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors group-focus-within:text-neutral-900">
                     <Mail size={16} />
                   </div>
+
                   <input
                     type="email"
                     placeholder="prateek@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-10 py-2.5 text-sm outline-none transition-all placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="ml-1 text-xs font-semibold text-neutral-700">Password</label>
+                <label className="ml-1 text-xs font-semibold text-neutral-700">
+                  Password
+                </label>
+
                 <div className="group relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors group-focus-within:text-neutral-900">
                     <Lock size={16} />
                   </div>
+
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-10 py-2.5 pr-11 text-sm outline-none transition-all placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
                   />
+
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 transition-colors hover:text-neutral-900"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -126,9 +183,20 @@ export default function SignUp() {
                 </div>
               </div>
 
-              <button className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white shadow-lg shadow-neutral-200 transition-all hover:bg-neutral-800">
-                Create Account
-                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+              {error && <p className="text-sm text-red-500">{error}</p>}
+
+              <button
+                disabled={loading}
+                className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white shadow-lg shadow-neutral-200 transition-all hover:bg-neutral-800 disabled:opacity-50"
+              >
+                {loading ? "Creating..." : "Create Account"}
+
+                {!loading && (
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
+                )}
               </button>
             </form>
 
@@ -143,7 +211,6 @@ export default function SignUp() {
             </div>
           </motion.div>
         </div>
-
         <div className="flex justify-between px-8 pb-8 text-xs text-neutral-400">
           <span>© 2026 Interview Genie</span>
         </div>
