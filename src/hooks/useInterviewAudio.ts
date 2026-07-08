@@ -100,6 +100,7 @@ export function useInterviewAudio({
         }
       },
       onMessage: (message) => {
+        console.log("[useInterviewAudio] onMessage:", message);
         if (message.type === "error") {
           const err = new Error(typeof message.detail === "string" ? message.detail : "Audio error");
           pendingAudioRef.current?.reject(err);
@@ -128,7 +129,14 @@ export function useInterviewAudio({
 
           onQuestion?.(message.question);
 
-          void startQuestionRef.current?.(message.question);
+          // Final message -> speak only
+          if (message.decision === "done") {
+            void speakQuestion(message.question);
+          }
+          // Normal interview question
+          else {
+            void startQuestionRef.current?.(message.question);
+          }
 
           return;
         }
@@ -161,17 +169,21 @@ export function useInterviewAudio({
 
   // ── Phase 1: Speak (via persistent client) ────────────────────────────────
   const speakQuestion = useCallback((text: string): Promise<void> => {
+    console.log("[speakQuestion] called with text=", text);
     return new Promise<void>((resolve, reject) => {
       const client = clientRef.current;
-      if (!client) { reject(new Error("Audio connection not ready")); return; }
-
+      if (!client) { 
+      console.log("[speakQuestion] !!! client is null, cannot speak");  
+      reject(new Error("Audio connection not ready")); return; }
       currentQuestionRef.current = text;
       pendingAudioRef.current = { resolve, reject };
       setIsAiSpeaking(true);
 
       try {
         client.speak(text);
+        console.log("[speakQuestion] client.speak() called successfully");
       } catch (err) {
+        console.log("[speakQuestion] !!! client.speak() threw", err);
         pendingAudioRef.current = null;
         reject(err instanceof Error ? err : new Error("Speak failed"));
       }

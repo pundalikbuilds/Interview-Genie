@@ -1,14 +1,13 @@
 "use client";
+
 import { Rnd } from "react-rnd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  Bot, Clock, MessageSquare, Mic, MoreHorizontal, PhoneOff, User,
-} from "lucide-react";
+import { Bot, Mic, PhoneOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createVideoStreamClient, type VideoStreamClient } from "@/services/video_ws";
 import { useInterviewAudio } from "@/hooks/useInterviewAudio";
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 type TranscriptEntry = {
   id: string;
@@ -16,12 +15,17 @@ type TranscriptEntry = {
   text: string;
 };
 =======
+=======
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
 // Import the new components
 import { AiAvatar } from "@/components/interview-room/AiAvatar";
 import { CameraFeed } from "@/components/interview-room/CameraFeed";
 import { TranscriptPanel, type TranscriptEntry } from "@/components/interview-room/TranscriptPanel";
 import { EvaluatingLoader } from "@/components/interview-room/EvaluatingLoader"; // <-- Import the loader
+<<<<<<< HEAD
 >>>>>>> 7d25d43e9091a339a1a6232b92d56c7f12f1b8f2
+=======
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
 
 /**
  * Pick the built-in laptop webcam, avoiding phone/virtual cameras.
@@ -49,7 +53,6 @@ async function getBuiltinCameraId(): Promise<string | undefined> {
 let _audioFlowStarted = false;
 
 export default function InterviewRoom() {
-  const [timeElapsed, setTimeElapsed]     = useState(0);
   const [transcript, setTranscript]       = useState<TranscriptEntry[]>([]);
   const [isStartingInterview, setIsStartingInterview] = useState(true);
   const [cameraError, setCameraError]     = useState<string | null>(null);
@@ -60,7 +63,10 @@ export default function InterviewRoom() {
   const [isSwapped, setIsSwapped]         = useState(false);
   const [audioError, setAudioError]       = useState<string | null>(null);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
   
   // Timer state
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -72,15 +78,16 @@ export default function InterviewRoom() {
     if (typeof window === "undefined") return null;
     return window.sessionStorage.getItem("interviewSessionId");
   });
+<<<<<<< HEAD
 >>>>>>> 7d25d43e9091a339a1a6232b92d56c7f12f1b8f2
+=======
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
   const router = useRouter();
 
   const videoRef              = useRef<HTMLVideoElement>(null);
   const streamRef             = useRef<MediaStream | null>(null);
   const videoStreamRef        = useRef<VideoStreamClient | null>(null);
   const transcriptEndRef      = useRef<HTMLDivElement>(null);
-  const interviewSessionIdRef = useRef<string | null>(null);
-  const audioStartedRef       = useRef(false);
 
   // ── Timer hook ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -114,7 +121,11 @@ export default function InterviewRoom() {
   const { isAiSpeaking, isRecording, isTranscribing, startQuestion } =
     useInterviewAudio({
       onTranscript: handleTranscript,
-      onError:      handleAudioError,
+      onError: handleAudioError,
+      onQuestion: (question) => {
+        addAiBubble(question);
+      },
+      sessionId: interviewSessionId ?? undefined,
     });
 
   // ── Add an AI bubble helper ────────────────────────────────────────────────
@@ -162,6 +173,7 @@ export default function InterviewRoom() {
   // ── Camera + video WebSocket ───────────────────────────────────────────────
   useEffect(() => {
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (typeof window === "undefined") return;
 
     const sessionId = window.sessionStorage.getItem("interviewSessionId");
@@ -174,15 +186,21 @@ export default function InterviewRoom() {
     if (!interviewSessionId || isEndingCall) {
       if (!interviewSessionId) setIsStartingInterview(false);
 >>>>>>> 7d25d43e9091a339a1a6232b92d56c7f12f1b8f2
+=======
+    if (!interviewSessionId || isEndingCall) {
+      if (!interviewSessionId) setIsStartingInterview(false);
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
       return;
     }
+
+    console.log("Session from backend:", interviewSessionId);
 
     let mounted = true;
     let interval: number | null = null;
     let isCleanedUp = false;
 
     const client = createVideoStreamClient({
-      sessionId,
+      sessionId: interviewSessionId,
       onOpen:    () => setPredictionError(null),
       onMessage: handleVideoMessage,
       onError: (error) => {
@@ -270,6 +288,7 @@ export default function InterviewRoom() {
       videoStreamRef.current = null;
     };
 <<<<<<< HEAD
+<<<<<<< HEAD
   }, []);
 
   // ── Timer (Count Up) ───────────────────────────────────────────────────────
@@ -280,15 +299,21 @@ export default function InterviewRoom() {
 =======
   }, [interviewSessionId, isEndingCall]);
 >>>>>>> 7d25d43e9091a339a1a6232b92d56c7f12f1b8f2
+=======
+  }, [interviewSessionId, isEndingCall]);
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
 
   // ── Start audio flow once on mount ────────────────────────────────────────
-  // Uses a ref to startQuestion so this effect only runs once on mount
-  // regardless of whether startQuestion's reference changes between renders.
   const startQuestionRef = useRef(startQuestion);
   useEffect(() => { startQuestionRef.current = startQuestion; }, [startQuestion]);
 
   useEffect(() => {
     console.log("[InterviewRoom] mount effect fired, _audioFlowStarted:", _audioFlowStarted);
+
+    if (!interviewSessionId) {
+      console.log("[InterviewRoom] waiting for session id before starting audio flow");
+      return;
+    }
 
     if (_audioFlowStarted) {
       console.log("[InterviewRoom] already started — skipping");
@@ -317,10 +342,6 @@ export default function InterviewRoom() {
       console.error("[InterviewRoom] failed to parse questions:", e);
     }
 
-    // Strict Mode in React dev intentionally unmounts+remounts every component.
-    // The cleanup return was cancelling the timeout on the first unmount,
-    // and the ref blocked the second mount from rescheduling.
-    // Fix: no cleanup — let the timeout fire. The ref prevents double execution.
     console.log("[InterviewRoom] scheduling audio start in 1500ms...");
     window.setTimeout(() => {
       console.log("[InterviewRoom] adding AI bubble:", firstQuestion);
@@ -334,7 +355,7 @@ export default function InterviewRoom() {
       });
     }, 1500);
 
-  }, []);  // empty deps — runs exactly once on mount
+  }, [interviewSessionId]);
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -380,25 +401,6 @@ export default function InterviewRoom() {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
-
-  // ── End call handler ───────────────────────────────────────────────────────
-  // Stops camera/mic tracks immediately (rather than waiting for the route's
-  // unmount cleanup) so the loading screen doesn't show a "camera still on"
-  // indicator, then sends the user to the evaluation loading page.
-  const handleEndCall = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    videoStreamRef.current?.close();
-    router.replace("/interview-loading");
-  };
-
   // ── Status bar label ───────────────────────────────────────────────────────
   const statusLabel = () => {
     if (isStartingInterview) return { icon: <Mic className="w-4 h-4 text-neutral-400" />, text: "Starting interview…" };
@@ -407,71 +409,6 @@ export default function InterviewRoom() {
     if (isTranscribing)      return { icon: <Bot className="w-4 h-4 text-indigo-400" />,  text: "Processing your answer…" };
     return { icon: <Mic className="w-4 h-4 text-neutral-400" />, text: "Ready" };
   };
-
-  const renderCameraView = (isMain: boolean) => (
-    <div className="relative h-full w-full bg-neutral-900 flex items-center justify-center">
-      {cameraError === null ? (
-        <>
-          <video ref={videoRef} autoPlay playsInline muted
-            className="w-full h-full object-cover transform scale-x-[-1]" />
-          {emotion && (
-            <div className={`absolute bg-black/65 backdrop-blur-md text-white rounded-xl shadow-lg border border-white/10 ${
-              isMain ? "bottom-6 left-6 px-4 py-2 text-sm" : "bottom-4 left-4 px-3 py-1.5 text-xs"
-            }`}>
-              <div className="font-semibold capitalize">{emotion}</div>
-              <div className="text-xs text-neutral-300">{(confidence * 100).toFixed(1)}% confidence</div>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 bg-neutral-900">
-          <User className="mb-3 h-8 w-8 opacity-50" />
-          <span className="text-sm">{cameraError}</span>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderAiView = (isMain: boolean) => (
-    <div className={`relative flex h-full w-full flex-col items-center justify-center transition-transform duration-500 ${isMain ? "scale-100" : "scale-75"}`}>
-      {isAiSpeaking && (
-        <motion.div
-          initial={{ opacity: 0.3, scale: 0.9 }}
-          animate={{ opacity: [0.2, 0.55, 0.2], scale: [1, 1.12, 1] }}
-          transition={{ repeat: Infinity, duration: 2.2 }}
-          className="absolute -inset-14 rounded-full bg-neutral-500/20 blur-3xl"
-        />
-      )}
-      <div className="relative flex h-56 w-56 items-center justify-center rounded-full border border-neutral-700 bg-gradient-to-br from-neutral-800 to-neutral-900 shadow-[0_25px_80px_rgba(0,0,0,0.45)]">
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 18, ease: "linear" }}
-          className="absolute inset-3 rounded-full border border-dashed border-neutral-600/70" />
-        <motion.div
-          animate={{ scale: isAiSpeaking ? [1, 1.05, 1] : 1 }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-          className={`relative z-10 flex h-32 w-32 flex-col items-center justify-center rounded-full border transition-colors duration-500 ${
-            isAiSpeaking ? "border-neutral-400 bg-neutral-700/40 shadow-[0_0_40px_rgba(255,255,255,0.08)]"
-                         : "border-neutral-700 bg-neutral-800/80"
-          }`}
-        >
-          <Bot className={`mb-2 h-11 w-11 ${isAiSpeaking ? "text-white" : "text-neutral-400"}`} />
-          <div className="flex h-4 items-end gap-1">
-            {[1, 2, 3, 4].map((i) => (
-              <motion.div key={i}
-                animate={{ height: isAiSpeaking ? ["25%", "100%", "25%"] : "25%" }}
-                transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.1 }}
-                className={`w-1 rounded-full ${isAiSpeaking ? "bg-white" : "bg-neutral-600"}`}
-              />
-            ))}
-          </div>
-        </motion.div>
-      </div>
-      {isMain && (
-        <div className="mt-6 rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur-md">
-          <span className="text-xs font-bold uppercase tracking-[0.24em] text-neutral-300">AI Interviewer</span>
-        </div>
-      )}
-    </div>
-  );
 
   const { icon: statusIcon, text: statusText } = statusLabel();
 
@@ -491,6 +428,7 @@ export default function InterviewRoom() {
             <div className="absolute right-4 top-4 z-50 rounded-md bg-red-500/90 px-3 py-2 text-xs text-white shadow-lg">
               Emotion API: {predictionError}
             </div>
+<<<<<<< HEAD
 <<<<<<< HEAD
             <div className="bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
               <Clock className="w-4 h-4 text-neutral-400" />
@@ -526,6 +464,8 @@ export default function InterviewRoom() {
               End Call
             </button>
 =======
+=======
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
           )}
           {audioError && !isEndingCall && (
             <div className="absolute right-4 top-14 z-50 rounded-md bg-orange-500/90 px-3 py-2 text-xs text-white shadow-lg">
@@ -608,6 +548,7 @@ export default function InterviewRoom() {
                 End Call
               </button>
             </div>
+<<<<<<< HEAD
 >>>>>>> 7d25d43e9091a339a1a6232b92d56c7f12f1b8f2
           </div>
 
@@ -657,6 +598,10 @@ export default function InterviewRoom() {
           </div>
         </motion.div>
 =======
+=======
+          </div>
+
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
           {/* RIGHT SIDE - TRANSCRIPT */}
           <TranscriptPanel 
             transcript={transcript} 
@@ -665,7 +610,10 @@ export default function InterviewRoom() {
             statusText={statusText} 
           />
         </div>
+<<<<<<< HEAD
 >>>>>>> 7d25d43e9091a339a1a6232b92d56c7f12f1b8f2
+=======
+>>>>>>> ebe7cf0d66c113e462162d46534c579f5a5f4631
       </div>
     </>
   );
