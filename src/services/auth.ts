@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface SignupPayload {
   name: string;
@@ -28,7 +28,7 @@ export async function signup(
 ): Promise<AuthResponse> {
 
   const response = await fetch(
-    `${API_URL}/api/auth/signup`,
+    `${API_URL}/auth/signup`,
     {
       method: "POST",
       headers: {
