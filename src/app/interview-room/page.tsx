@@ -11,6 +11,7 @@ import { useInterviewAudio } from "@/hooks/useInterviewAudio";
 import { AiAvatar } from "@/components/interview-room/AiAvatar";
 import { CameraFeed } from "@/components/interview-room/CameraFeed";
 import { TranscriptPanel, type TranscriptEntry } from "@/components/interview-room/TranscriptPanel";
+import { EvaluatingLoader } from "@/components/interview-room/EvaluatingLoader"; // <-- Import the loader
 
 /**
  * Pick the built-in laptop webcam, avoiding phone/virtual cameras.
@@ -47,6 +48,13 @@ export default function InterviewRoom() {
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [isSwapped, setIsSwapped]         = useState(false);
   const [audioError, setAudioError]       = useState<string | null>(null);
+  
+  // Timer state
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Loading state for end of interview
+  const [isEndingCall, setIsEndingCall] = useState(false);
+
   const [interviewSessionId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.sessionStorage.getItem("interviewSessionId");
@@ -58,9 +66,24 @@ export default function InterviewRoom() {
   const videoStreamRef        = useRef<VideoStreamClient | null>(null);
   const transcriptEndRef      = useRef<HTMLDivElement>(null);
 
+  // ── Timer hook ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    // Only increment if we haven't started ending the call
+    if (isEndingCall) return;
+    
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isEndingCall]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   // ── Audio hook ─────────────────────────────────────────────────────────────
-  // useCallback stabilises these so startQuestion gets a stable reference,
-  // preventing the audio useEffect from re-firing on every render.
   const handleTranscript = useCallback((text: string) => {
     setTranscript((prev) => [
       ...prev,
@@ -126,9 +149,8 @@ export default function InterviewRoom() {
 
   // ── Camera + video WebSocket ───────────────────────────────────────────────
   useEffect(() => {
-    if (!interviewSessionId) {
-      setIsStartingInterview(false);
-      setPredictionError("Missing interview session.");
+    if (!interviewSessionId || isEndingCall) {
+      if (!interviewSessionId) setIsStartingInterview(false);
       return;
     }
 
@@ -226,7 +248,7 @@ export default function InterviewRoom() {
       client.close();
       videoStreamRef.current = null;
     };
-  }, [interviewSessionId]);
+  }, [interviewSessionId, isEndingCall]);
 
   // ── Start audio flow once on mount ────────────────────────────────────────
   const startQuestionRef = useRef(startQuestion);
@@ -289,11 +311,42 @@ export default function InterviewRoom() {
   useEffect(() => { setIsClientMounted(true); }, []);
 
   useEffect(() => {
-    if (videoRef.current && streamRef.current) {
+    if (videoRef.current && streamRef.current && !isEndingCall) {
       videoRef.current.srcObject = streamRef.current;
       videoRef.current.play().catch(() => undefined);
     }
-  }, [isSwapped]);
+  }, [isSwapped, isEndingCall]);
+
+  // ── End Call Handler ───────────────────────────────────────────────────────
+  const handleEndCall = async () => {
+    setIsEndingCall(true);
+
+    // Turn off camera/microphone immediately so the user knows they are safe
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+    }
+    if (videoStreamRef.current) {
+      videoStreamRef.current.close();
+    }
+
+    try {
+      // TODO: Replace this simulated timeout with your actual backend evaluation API call
+      // Example:
+      // await fetch("/api/evaluate-interview", { 
+      //   method: "POST", 
+      //   body: JSON.stringify({ sessionId: interviewSessionId, transcript }) 
+      // });
+      
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulated 3 seconds
+      
+      // Evaluation is done, redirect to feedback page
+      router.replace("/feedback");
+    } catch (error) {
+      console.error("Failed to evaluate interview:", error);
+      setIsEndingCall(false); // Only reset if you want them to be able to try again on error
+      // Fallback: router.replace("/feedback");
+    }
+  };
 
   // ── Status bar label ───────────────────────────────────────────────────────
   const statusLabel = () => {
@@ -307,107 +360,114 @@ export default function InterviewRoom() {
   const { icon: statusIcon, text: statusText } = statusLabel();
 
   return (
-    <div className="min-h-screen w-full bg-neutral-950 text-white overflow-hidden font-sans">
-      <div className="absolute inset-0 pointer-events-none opacity-40">
-        <div className="absolute left-[12%] top-[10%] h-80 w-80 rounded-full bg-neutral-700/20 blur-3xl" />
-        <div className="absolute right-[10%] bottom-[8%] h-96 w-96 rounded-full bg-neutral-800/30 blur-3xl" />
-      </div>
+    <>
+      {/* ── SEPARATED LOADING COMPONENT ── */}
+      <EvaluatingLoader isOpen={isEndingCall} />
 
-      <div className="relative grid min-h-screen grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(0,1fr)_420px] lg:p-6">
-        {predictionError && (
-          <div className="absolute right-4 top-4 z-50 rounded-md bg-red-500/90 px-3 py-2 text-xs text-white shadow-lg">
-            Emotion API: {predictionError}
-          </div>
-        )}
-        {audioError && (
-          <div className="absolute right-4 top-14 z-50 rounded-md bg-orange-500/90 px-3 py-2 text-xs text-white shadow-lg">
-            Audio: {audioError}
-          </div>
-        )}
+      <div className="min-h-screen w-full bg-neutral-950 text-white overflow-hidden font-sans">
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <div className="absolute left-[12%] top-[10%] h-80 w-80 rounded-full bg-neutral-700/20 blur-3xl" />
+          <div className="absolute right-[10%] bottom-[8%] h-96 w-96 rounded-full bg-neutral-800/30 blur-3xl" />
+        </div>
 
-        {/* LEFT SIDE */}
-        <div className="relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 shadow-2xl lg:min-h-[calc(100vh-3rem)]">
-          <div className="absolute inset-0 pointer-events-none opacity-[0.06] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:28px_28px]" />
-
-          <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
-            <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-xs font-bold tracking-widest uppercase">Live Recording</span>
+        <div className="relative grid min-h-screen grid-cols-1 gap-6 p-4 lg:grid-cols-[minmax(0,1fr)_420px] lg:p-6">
+          {predictionError && !isEndingCall && (
+            <div className="absolute right-4 top-4 z-50 rounded-md bg-red-500/90 px-3 py-2 text-xs text-white shadow-lg">
+              Emotion API: {predictionError}
             </div>
-          </div>
+          )}
+          {audioError && !isEndingCall && (
+            <div className="absolute right-4 top-14 z-50 rounded-md bg-orange-500/90 px-3 py-2 text-xs text-white shadow-lg">
+              Audio: {audioError}
+            </div>
+          )}
 
-          <div
-            className="absolute inset-8 top-24 bottom-28 z-10 flex items-center justify-center rounded-3xl"
-            onDoubleClick={() => setIsSwapped((p) => !p)}
-            title="Double-click to swap"
-          >
-            {isSwapped ? (
-              <div className="h-full w-full overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                <CameraFeed 
-                  isMain={true} 
-                  videoRef={videoRef} 
-                  cameraError={cameraError} 
-                  emotion={emotion} 
-                  confidence={confidence} 
-                />
+          {/* LEFT SIDE */}
+          <div className="relative min-h-[calc(100vh-2rem)] overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-950 shadow-2xl lg:min-h-[calc(100vh-3rem)]">
+            <div className="absolute inset-0 pointer-events-none opacity-[0.06] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:28px_28px]" />
+
+            <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
+              <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs font-bold tracking-widest uppercase">Live Recording</span>
+                <span className="text-xs font-mono ml-2 pl-2 border-l border-white/20">{formatTime(elapsedSeconds)}</span>
               </div>
-            ) : (
-              <AiAvatar isMain={true} isAiSpeaking={isAiSpeaking} />
-            )}
-          </div>
+            </div>
 
-          {isClientMounted && (
-            <Rnd
-              default={{
-                x: 28,
-                y: typeof window !== "undefined" ? window.innerHeight - 290 : 0,
-                width: 340,
-                height: 210,
-              }}
-              minWidth={250}
-              minHeight={150}
-              bounds="window"
-              className="z-40"
+            <div
+              className="absolute inset-8 top-24 bottom-28 z-10 flex items-center justify-center rounded-3xl"
+              onDoubleClick={() => setIsSwapped((p) => !p)}
+              title="Double-click to swap"
             >
-              <div
-                className="w-full h-full rounded-3xl overflow-hidden bg-neutral-900 border border-white/10 shadow-2xl relative backdrop-blur-md"
-                onDoubleClick={() => setIsSwapped((p) => !p)}
-                title="Double-click to swap"
-              >
-                {isSwapped ? (
-                  <AiAvatar isMain={false} isAiSpeaking={isAiSpeaking} />
-                ) : (
+              {isSwapped ? (
+                <div className="h-full w-full overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                   <CameraFeed 
-                    isMain={false} 
+                    isMain={true} 
                     videoRef={videoRef} 
                     cameraError={cameraError} 
                     emotion={emotion} 
                     confidence={confidence} 
                   />
-                )}
-              </div>
-            </Rnd>
-          )}
+                </div>
+              ) : (
+                <AiAvatar isMain={true} isAiSpeaking={isAiSpeaking} />
+              )}
+            </div>
 
-          <div className="absolute bottom-8 right-8 z-20">
-            <button
-              onClick={() => router.replace("/feedback")}
-              className="px-6 py-4 rounded-2xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 text-white shadow-xl"
-            >
-              <PhoneOff className="w-5 h-5" />
-              End Call
-            </button>
+            {isClientMounted && !isEndingCall && (
+              <Rnd
+                default={{
+                  x: 28,
+                  y: typeof window !== "undefined" ? window.innerHeight - 290 : 0,
+                  width: 340,
+                  height: 210,
+                }}
+                minWidth={250}
+                minHeight={150}
+                bounds="window"
+                className="z-40"
+              >
+                <div
+                  className="w-full h-full rounded-3xl overflow-hidden bg-neutral-900 border border-white/10 shadow-2xl relative backdrop-blur-md"
+                  onDoubleClick={() => setIsSwapped((p) => !p)}
+                  title="Double-click to swap"
+                >
+                  {isSwapped ? (
+                    <AiAvatar isMain={false} isAiSpeaking={isAiSpeaking} />
+                  ) : (
+                    <CameraFeed 
+                      isMain={false} 
+                      videoRef={videoRef} 
+                      cameraError={cameraError} 
+                      emotion={emotion} 
+                      confidence={confidence} 
+                    />
+                  )}
+                </div>
+              </Rnd>
+            )}
+
+            <div className="absolute bottom-8 right-8 z-20">
+              <button
+                onClick={handleEndCall}
+                disabled={isEndingCall}
+                className="px-6 py-4 rounded-2xl font-medium flex items-center gap-2 transition-all bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white shadow-xl"
+              >
+                <PhoneOff className="w-5 h-5" />
+                End Call
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* RIGHT SIDE - TRANSCRIPT */}
-        <TranscriptPanel 
-          transcript={transcript} 
-          transcriptEndRef={transcriptEndRef} 
-          statusIcon={statusIcon} 
-          statusText={statusText} 
-        />
+          {/* RIGHT SIDE - TRANSCRIPT */}
+          <TranscriptPanel 
+            transcript={transcript} 
+            transcriptEndRef={transcriptEndRef} 
+            statusIcon={statusIcon} 
+            statusText={statusText} 
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
