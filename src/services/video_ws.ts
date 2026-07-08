@@ -20,7 +20,8 @@ export type VideoStreamClient = {
 	isConnected: () => boolean;
 };
 
-const DEFAULT_VIDEO_WS_ENDPOINT = "ws://localhost:8000/api/video_ws";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+const DEFAULT_VIDEO_WS_ENDPOINT = `${API_BASE}/video_ws`;
 
 function normalizeWebSocketUrl(endpoint: string, sessionId: string) {
 	const url = new URL(endpoint, window.location.origin);
