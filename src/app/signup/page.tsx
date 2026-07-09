@@ -54,30 +54,31 @@ export default function SignUp() {
   const [error, setError] = useState("");
 
   async function handleSignup(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  event.preventDefault();
 
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    try {
-      const response = await signup({
-        name,
-        email,
-        password,
-      });
+  try {
+    const response = await signup({
+      name,
+      email,
+      password,
+    });
 
-      console.log("Signup successful:", response);
+    console.log("Signup successful:", response);
 
-      localStorage.setItem("access_token", response.access_token);
+    // Save authentication data
+    localStorage.setItem("access_token", response.access_token);
+    localStorage.setItem("user", JSON.stringify(response.user));
 
-      // Redirect after signup
-      window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.message || "Signup failed");
-    } finally {
-      setLoading(false);
-    }
+    window.location.href = "/dashboard";
+  } catch (err: any) {
+    setError(err.message || "Signup failed");
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <div className="relative min-h-screen w-full bg-white font-sans selection:bg-neutral-900 selection:text-white">
