@@ -11,7 +11,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 export async function sendJobDetails(payload: JobDetailsPayload) {
   console.log("Sending job details:", payload);
 
-  const response = await fetch(`${API_BASE}/sessions`, {
+  const response = await fetch(`${API_BASE}/api/sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
