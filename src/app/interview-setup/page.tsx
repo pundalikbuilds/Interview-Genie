@@ -40,7 +40,7 @@ export default function InterviewSetupPage() {
 
   const handleStartInterview = async () => {
     setStartError(null);
-    const userId = "12345"; // temp until auth
+    const userId = "64a49cf7dc8bc855d3056152"; // temp until auth
     const candidateName = "Aaron Wang"; // temp until auth
     setIsStartingInterview(true);
     setQuestionsReady(false);
