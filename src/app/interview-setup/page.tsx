@@ -39,51 +39,57 @@ export default function InterviewSetupPage() {
   };
 
   const handleStartInterview = async () => {
-    setStartError(null);
-    const userId = "64a49cf7dc8bc855d3056152"; // temp until auth
-    const candidateName = "Aaron Wang"; // temp until auth
-    setIsStartingInterview(true);
-    setQuestionsReady(false);
+  setStartError(null);
 
-    try {
-      const res = await sendJobDetails({
-        userId,
-        candidateName,
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    setStartError("Please log in before starting an interview.");
+    return;
+  }
+
+  setIsStartingInterview(true);
+  setQuestionsReady(false);
+
+  try {
+    const res = await sendJobDetails(
+      {
         jobRole,
         skills,
         difficulty,
-      });
+      },
+      token
+    );
 
-      const sessionId = res?.session_id;
+    const sessionId = res?.session_id;
 
-      if (!sessionId) {
-        throw new Error("Backend did not return a session_id");
-      }
-
-      const questions = res?.questions ?? [];
-
-      console.log("Session from backend:", sessionId);
-      console.log("Questions received from backend:", questions);
-
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("interviewSessionId", sessionId);
-        window.sessionStorage.setItem(
-          "interviewQuestions",
-          JSON.stringify(questions)
-        );
-      }
-
-      setQuestionsReady(true);
-      router.push("/interview-room");
-
-    } catch (err) {
-      console.error("Failed to start interview:", err);
-      setStartError("Unable to start the interview right now. Please try again.");
-      setQuestionsReady(false);
-    } finally {
-      setIsStartingInterview(false);
+    if (!sessionId) {
+      throw new Error("Backend did not return a session_id");
     }
-  };
+
+    const questions = res?.questions ?? [];
+
+    sessionStorage.setItem("interviewSessionId", sessionId);
+    sessionStorage.setItem(
+      "interviewQuestions",
+      JSON.stringify(questions)
+    );
+
+    setQuestionsReady(true);
+    router.push("/interview-room");
+  } catch (err) {
+    console.error(err);
+
+    setStartError(
+      err instanceof Error
+        ? err.message
+        : "Unable to start the interview right now."
+    );
+  } finally {
+    setQuestionsReady(false);
+    setIsStartingInterview(false);
+  }
+};
 
   const isStep1Valid = jobRole.trim().length > 2 && skills.length > 0;
   const canStartInterview = cameraEnabled && micEnabled;

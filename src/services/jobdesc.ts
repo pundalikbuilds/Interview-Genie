@@ -1,6 +1,4 @@
 export type JobDetailsPayload = {
-  userId: string;
-  candidateName: string;
   jobRole: string;
   skills: string[];
   difficulty: "easy" | "intermediate" | "hard";
@@ -8,17 +6,23 @@ export type JobDetailsPayload = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
-export async function sendJobDetails(payload: JobDetailsPayload) {
+export async function sendJobDetails(
+  payload: JobDetailsPayload,
+  token: string
+) {
   console.log("Sending job details:", payload);
 
   const response = await fetch(`${API_BASE}/api/sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({
       ...payload,
-      description: `${payload.jobRole} | Skills: ${payload.skills.join(", ")} | Difficulty: ${payload.difficulty}`,
+      description: `${payload.jobRole} | Skills: ${payload.skills.join(
+        ", "
+      )} | Difficulty: ${payload.difficulty}`,
     }),
   });
 
