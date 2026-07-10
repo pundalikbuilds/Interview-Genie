@@ -2,47 +2,92 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 
 interface NavLink {
   name: string;
   href: string;
 }
 
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
 // Left as an empty array so you can easily add links later without breaking the layout.
 const navLinks: NavLink[] = [];
+
+// "Prateek Sarmalkar" -> "PS", "Prateek" -> "P"
+function getInitials(name: string): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? "?";
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
-    
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Load logged-in user from localStorage (set on signin/signup)
+  useEffect(() => {
+    const loadUser = () => {
+      try {
+        const raw = window.localStorage.getItem("user");
+        setUser(raw ? JSON.parse(raw) : null);
+      } catch {
+        setUser(null);
+      }
+    };
+    loadUser();
+
+    // keep in sync if another tab logs in/out
+    window.addEventListener("storage", loadUser);
+    return () => window.removeEventListener("storage", loadUser);
+  }, []);
+
+  const handleLogout = () => {
+    window.localStorage.removeItem("access_token");
+    window.localStorage.removeItem("user");
+    setUser(null);
+    setIsProfileOpen(false);
+    setIsMobileMenuOpen(false);
+    router.push("/");
+  };
+
+  const initials = user ? getInitials(user.name) : "";
 
   return (
     <header
       className={`fixed z-50 transition-all duration-500 ${
-        isScrolled 
-          ? "top-4 left-4 right-4" 
+        isScrolled
+          ? "top-4 left-4 right-4"
           : "top-0 left-0 right-0"
       }`}
     >
-      <nav 
+      <nav
         className={`mx-auto transition-all duration-500 ${
           isScrolled || isMobileMenuOpen
-            // Reduced opacity further to bg-background/30 for more translucency
-            ? "bg-background/30 backdrop-blur-xl border border-foreground/10 rounded-xl shadow-lg max-w-[1300px]" 
+            ? "bg-background/30 backdrop-blur-xl border border-foreground/10 rounded-xl shadow-lg max-w-[1300px]"
             : "bg-transparent max-w-[1536px]"
         }`}
       >
-        <div 
+        <div
           className={`flex items-center justify-between transition-all duration-500 px-6 lg:px-8 ${
             isScrolled ? "h-14" : "h-20"
           }`}
@@ -70,18 +115,63 @@ export function Header() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Link 
-              href="/signin" 
-              className={`text-foreground/70 font-medium hover:text-foreground transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}
-            >
-              Sign in
-            </Link>
-            <Button
-              size="sm"
-              className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
-            >
-              Get Started
-            </Button>
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen((p) => !p)}
+                  className={`flex items-center justify-center rounded-full bg-foreground text-background font-semibold transition-all duration-500 ${
+                    isScrolled ? "h-8 w-8 text-xs" : "h-9 w-9 text-sm"
+                  }`}
+                  aria-label="Account menu"
+                >
+                  {initials}
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-xl border border-foreground/10 bg-background shadow-lg overflow-hidden">
+                    <div className="px-4 py-3 border-b border-foreground/10">
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {user.name}
+                      </p>
+                      <p className="text-xs text-foreground/50 truncate">
+                        {user.email}
+                      </p>
+                    </div>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="block px-4 py-2.5 text-sm text-foreground/80 hover:bg-foreground/5 transition-colors"
+                    >
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/80 hover:bg-foreground/5 transition-colors text-left"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/signin"
+                  className={`text-foreground/70 font-medium hover:text-foreground transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}
+                >
+                  Sign in
+                </Link>
+                <Link href="/signup">
+                  <Button
+                    size="sm"
+                    className={`bg-foreground hover:bg-foreground/90 text-background rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
+                  >
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -98,27 +188,39 @@ export function Header() {
           </button>
         </div>
       </nav>
-      
+
       {/* Mobile Menu - Full Screen Overlay */}
       <div
         className={`md:hidden fixed inset-0 bg-background z-40 transition-all duration-500 ${
-          isMobileMenuOpen 
-            ? "opacity-100 pointer-events-auto" 
+          isMobileMenuOpen
+            ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
         }`}
         style={{ top: 0 }}
       >
         <div className="flex flex-col h-full px-8 pt-28 pb-8">
-          {/* Navigation Links */}
+          {/* User info / Navigation Links */}
           <div className="flex-1 flex flex-col justify-center gap-8">
+            {user && (
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-foreground text-background text-xl font-bold">
+                  {initials}
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-foreground">{user.name}</p>
+                  <p className="text-sm text-foreground/50">{user.email}</p>
+                </div>
+              </div>
+            )}
+
             {navLinks.map((link, i) => (
               <Link
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`text-5xl font-bold text-foreground hover:text-muted-foreground transition-all duration-500 ${
-                  isMobileMenuOpen 
-                    ? "opacity-100 translate-y-0" 
+                  isMobileMenuOpen
+                    ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
                 }`}
                 style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : "0ms" }}
@@ -127,29 +229,44 @@ export function Header() {
               </Link>
             ))}
           </div>
-          
+
           {/* Bottom CTAs */}
-          <div 
+          <div
             className={`flex gap-4 pt-8 border-t border-foreground/10 transition-all duration-500 ${
-              isMobileMenuOpen 
-                ? "opacity-100 translate-y-0" 
+              isMobileMenuOpen
+                ? "opacity-100 translate-y-0"
                 : "opacity-0 translate-y-4"
             }`}
             style={{ transitionDelay: isMobileMenuOpen ? "300ms" : "0ms" }}
           >
-            <Button 
-              variant="outline" 
-              className="flex-1 rounded-full h-14 text-base"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Sign in
-            </Button>
-            <Button 
-              className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Get Started
-            </Button>
+            {user ? (
+              <>
+                <Link href="/dashboard" className="flex-1" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full rounded-full h-14 text-base">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button
+                  className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
+                  onClick={handleLogout}
+                >
+                  Sign out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/signin" className="flex-1" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full rounded-full h-14 text-base">
+                    Sign in
+                  </Button>
+                </Link>
+                <Link href="/signup" className="flex-1" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button className="w-full bg-foreground text-background rounded-full h-14 text-base">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
