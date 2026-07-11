@@ -3,7 +3,7 @@
 import { Rnd } from "react-rnd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Bot, Mic, PhoneOff } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { createVideoStreamClient, type VideoStreamClient } from "@/services/video_ws";
 import { useInterviewAudio } from "@/hooks/useInterviewAudio";
 import {
@@ -59,10 +59,10 @@ export default function InterviewRoom() {
   // Loading state for end of interview
   const [isEndingCall, setIsEndingCall] = useState(false);
 
-  const [interviewSessionId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return window.sessionStorage.getItem("interviewSessionId");
-  });
+  // ── Session id now comes from the dynamic route segment, not sessionStorage ──
+  const params = useParams();
+  const interviewSessionId = typeof params?.id === "string" ? params.id : null;
+
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
