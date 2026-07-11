@@ -6,6 +6,10 @@ import { Bot, Mic, PhoneOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createVideoStreamClient, type VideoStreamClient } from "@/services/video_ws";
 import { useInterviewAudio } from "@/hooks/useInterviewAudio";
+import {
+    getInterviewReport,
+    updateInterviewDuration,
+} from "@/services/report";
 
 // Import the new components
 import { AiAvatar } from "@/components/interview-room/AiAvatar";
@@ -39,16 +43,16 @@ async function getBuiltinCameraId(): Promise<string | undefined> {
 let _audioFlowStarted = false;
 
 export default function InterviewRoom() {
-  const [transcript, setTranscript]       = useState<TranscriptEntry[]>([]);
+  const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isStartingInterview, setIsStartingInterview] = useState(true);
-  const [cameraError, setCameraError]     = useState<string | null>(null);
-  const [emotion, setEmotion]             = useState("");
-  const [confidence, setConfidence]       = useState(0);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [emotion, setEmotion] = useState("");
+  const [confidence, setConfidence] = useState(0);
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [isClientMounted, setIsClientMounted] = useState(false);
-  const [isSwapped, setIsSwapped]         = useState(false);
-  const [audioError, setAudioError]       = useState<string | null>(null);
-  
+  const [isSwapped, setIsSwapped] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
   // Timer state
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -61,16 +65,16 @@ export default function InterviewRoom() {
   });
   const router = useRouter();
 
-  const videoRef              = useRef<HTMLVideoElement>(null);
-  const streamRef             = useRef<MediaStream | null>(null);
-  const videoStreamRef        = useRef<VideoStreamClient | null>(null);
-  const transcriptEndRef      = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const videoStreamRef = useRef<VideoStreamClient | null>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
 
   // ── Timer hook ─────────────────────────────────────────────────────────────
   useEffect(() => {
     // Only increment if we haven't started ending the call
     if (isEndingCall) return;
-    
+
     const interval = window.setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
@@ -78,7 +82,9 @@ export default function InterviewRoom() {
   }, [isEndingCall]);
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
@@ -119,8 +125,9 @@ export default function InterviewRoom() {
     confidence?: number;
   }) => {
     setIsStartingInterview(false);
-    if (typeof message.emotion === "string")   setEmotion(message.emotion);
-    if (typeof message.confidence === "number") setConfidence(message.confidence);
+    if (typeof message.emotion === "string") setEmotion(message.emotion);
+    if (typeof message.confidence === "number")
+      setConfidence(message.confidence);
   };
 
   const captureAndSendFrame = async (client: VideoStreamClient) => {
@@ -130,7 +137,7 @@ export default function InterviewRoom() {
     if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
     const canvas = document.createElement("canvas");
-    canvas.width  = video.videoWidth;
+    canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -142,7 +149,8 @@ export default function InterviewRoom() {
       await client.sendFrame(base64Frame);
       if (predictionError) setPredictionError(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Video websocket streaming failed";
+      const message =
+        err instanceof Error ? err.message : "Video websocket streaming failed";
       setPredictionError((prev) => (prev === message ? prev : message));
     }
   };
@@ -162,15 +170,18 @@ export default function InterviewRoom() {
 
     const client = createVideoStreamClient({
       sessionId: interviewSessionId,
-      onOpen:    () => setPredictionError(null),
+      onOpen: () => setPredictionError(null),
       onMessage: handleVideoMessage,
       onError: (error) => {
         if (isCleanedUp) return;
         setIsStartingInterview(false);
-        const message = error instanceof Error ? error.message : "Video websocket failed";
+        const message =
+          error instanceof Error ? error.message : "Video websocket failed";
         setPredictionError(message);
       },
-      onClose: () => { if (!isCleanedUp) setIsStartingInterview(false); },
+      onClose: () => {
+        if (!isCleanedUp) setIsStartingInterview(false);
+      },
     });
     videoStreamRef.current = client;
 
@@ -178,7 +189,11 @@ export default function InterviewRoom() {
       try {
         const deviceId = await getBuiltinCameraId();
         const videoConstraint = deviceId
-          ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }
+          ? {
+              deviceId: { exact: deviceId },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            }
           : { width: { ideal: 1280 }, height: { ideal: 720 } };
 
         let stream: MediaStream;
@@ -188,23 +203,38 @@ export default function InterviewRoom() {
             audio: true,
           });
         } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
         }
-        if (!mounted) { stream.getTracks().forEach((t) => t.stop()); return; }
+        if (!mounted) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
 
         let retries = 0;
         while (!videoRef.current && retries < 20) {
           await new Promise((r) => window.setTimeout(r, 100));
           retries++;
         }
-        if (!videoRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
+        if (!videoRef.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
 
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
 
         await new Promise<void>((resolve) => {
           const video = videoRef.current;
-          if (!video || video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) { resolve(); return; }
+          if (
+            !video ||
+            video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+          ) {
+            resolve();
+            return;
+          }
           video.addEventListener("canplay", () => resolve(), { once: true });
         });
 
@@ -212,25 +242,34 @@ export default function InterviewRoom() {
 
         // Wait for WS connection (max 10s)
         await new Promise<void>((resolve) => {
-          if (client.isConnected()) { resolve(); return; }
+          if (client.isConnected()) {
+            resolve();
+            return;
+          }
           let waited = 0;
           const poll = window.setInterval(() => {
             waited += 100;
             if (client.isConnected() || waited >= 10000) {
-              window.clearInterval(poll); resolve();
+              window.clearInterval(poll);
+              resolve();
             }
           }, 100);
         });
 
         if (!mounted) return;
-        interval = window.setInterval(() => void captureAndSendFrame(client), 2000);
+        interval = window.setInterval(
+          () => void captureAndSendFrame(client),
+          2000,
+        );
       } catch (error) {
         if (isCleanedUp) return;
         const err = error as DOMException;
         let errorMsg = "Camera unavailable";
-        if (err.name === "NotReadableError")  errorMsg = "Camera in use by another app";
-        if (err.name === "NotAllowedError")   errorMsg = "Camera permission denied";
-        if (err.name === "NotFoundError")     errorMsg = "No camera found";
+        if (err.name === "NotReadableError")
+          errorMsg = "Camera in use by another app";
+        if (err.name === "NotAllowedError")
+          errorMsg = "Camera permission denied";
+        if (err.name === "NotFoundError") errorMsg = "No camera found";
         if (mounted) setCameraError(errorMsg);
       }
     };
@@ -252,13 +291,20 @@ export default function InterviewRoom() {
 
   // ── Start audio flow once on mount ────────────────────────────────────────
   const startQuestionRef = useRef(startQuestion);
-  useEffect(() => { startQuestionRef.current = startQuestion; }, [startQuestion]);
+  useEffect(() => {
+    startQuestionRef.current = startQuestion;
+  }, [startQuestion]);
 
   useEffect(() => {
-    console.log("[InterviewRoom] mount effect fired, _audioFlowStarted:", _audioFlowStarted);
+    console.log(
+      "[InterviewRoom] mount effect fired, _audioFlowStarted:",
+      _audioFlowStarted,
+    );
 
     if (!interviewSessionId) {
-      console.log("[InterviewRoom] waiting for session id before starting audio flow");
+      console.log(
+        "[InterviewRoom] waiting for session id before starting audio flow",
+      );
       return;
     }
 
@@ -283,7 +329,9 @@ export default function InterviewRoom() {
           console.log("[InterviewRoom] firstQuestion set to:", firstQuestion);
         }
       } else {
-        console.warn("[InterviewRoom] no interviewQuestions in sessionStorage — using fallback");
+        console.warn(
+          "[InterviewRoom] no interviewQuestions in sessionStorage — using fallback",
+        );
       }
     } catch (e) {
       console.error("[InterviewRoom] failed to parse questions:", e);
@@ -295,20 +343,24 @@ export default function InterviewRoom() {
       addAiBubble(firstQuestion);
 
       console.log("[InterviewRoom] calling startQuestion...");
-      void startQuestionRef.current(firstQuestion).then(() => {
-        console.log("[InterviewRoom] startQuestion completed");
-      }).catch((err: unknown) => {
-        console.error("[InterviewRoom] startQuestion threw:", err);
-      });
+      void startQuestionRef
+        .current(firstQuestion)
+        .then(() => {
+          console.log("[InterviewRoom] startQuestion completed");
+        })
+        .catch((err: unknown) => {
+          console.error("[InterviewRoom] startQuestion threw:", err);
+        });
     }, 1500);
-
   }, [interviewSessionId]);
 
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript]);
 
-  useEffect(() => { setIsClientMounted(true); }, []);
+  useEffect(() => {
+    setIsClientMounted(true);
+  }, []);
 
   useEffect(() => {
     if (videoRef.current && streamRef.current && !isEndingCall) {
@@ -319,42 +371,60 @@ export default function InterviewRoom() {
 
   // ── End Call Handler ───────────────────────────────────────────────────────
   const handleEndCall = async () => {
+    if (!interviewSessionId) return;
+
     setIsEndingCall(true);
 
-    // Turn off camera/microphone immediately so the user knows they are safe
+    // Stop camera
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
+
+    // Close video websocket
     if (videoStreamRef.current) {
       videoStreamRef.current.close();
+      videoStreamRef.current = null;
     }
 
     try {
-      // TODO: Replace this simulated timeout with your actual backend evaluation API call
-      // Example:
-      // await fetch("/api/evaluate-interview", { 
-      //   method: "POST", 
-      //   body: JSON.stringify({ sessionId: interviewSessionId, transcript }) 
-      // });
-      
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Simulated 3 seconds
-      
-      // Evaluation is done, redirect to feedback page
-      router.replace("/feedback");
+      // Update duration in MongoDB
+      await updateInterviewDuration(interviewSessionId, elapsedSeconds);
+
+      // Go to feedback page
+      router.replace(`/feedback/${interviewSessionId}`);
     } catch (error) {
-      console.error("Failed to evaluate interview:", error);
-      setIsEndingCall(false); // Only reset if you want them to be able to try again on error
-      // Fallback: router.replace("/feedback");
+      console.error("Failed to update interview duration:", error);
+      setIsEndingCall(false);
     }
   };
 
   // ── Status bar label ───────────────────────────────────────────────────────
   const statusLabel = () => {
-    if (isStartingInterview) return { icon: <Mic className="w-4 h-4 text-neutral-400" />, text: "Starting interview…" };
-    if (isAiSpeaking)        return { icon: <Bot className="w-4 h-4 text-indigo-600" />,  text: "AI is speaking…" };
-    if (isRecording)         return { icon: <Mic className="w-4 h-4 text-red-500 animate-pulse" />, text: "Listening to your response…" };
-    if (isTranscribing)      return { icon: <Bot className="w-4 h-4 text-indigo-400" />,  text: "Processing your answer…" };
-    return { icon: <Mic className="w-4 h-4 text-neutral-400" />, text: "Ready" };
+    if (isStartingInterview)
+      return {
+        icon: <Mic className="w-4 h-4 text-neutral-400" />,
+        text: "Starting interview…",
+      };
+    if (isAiSpeaking)
+      return {
+        icon: <Bot className="w-4 h-4 text-indigo-600" />,
+        text: "AI is speaking…",
+      };
+    if (isRecording)
+      return {
+        icon: <Mic className="w-4 h-4 text-red-500 animate-pulse" />,
+        text: "Listening to your response…",
+      };
+    if (isTranscribing)
+      return {
+        icon: <Bot className="w-4 h-4 text-indigo-400" />,
+        text: "Processing your answer…",
+      };
+    return {
+      icon: <Mic className="w-4 h-4 text-neutral-400" />,
+      text: "Ready",
+    };
   };
 
   const { icon: statusIcon, text: statusText } = statusLabel();
@@ -389,8 +459,12 @@ export default function InterviewRoom() {
             <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
               <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
                 <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-xs font-bold tracking-widest uppercase">Live Recording</span>
-                <span className="text-xs font-mono ml-2 pl-2 border-l border-white/20">{formatTime(elapsedSeconds)}</span>
+                <span className="text-xs font-bold tracking-widest uppercase">
+                  Live Recording
+                </span>
+                <span className="text-xs font-mono ml-2 pl-2 border-l border-white/20">
+                  {formatTime(elapsedSeconds)}
+                </span>
               </div>
             </div>
 
@@ -401,12 +475,12 @@ export default function InterviewRoom() {
             >
               {isSwapped ? (
                 <div className="h-full w-full overflow-hidden rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                  <CameraFeed 
-                    isMain={true} 
-                    videoRef={videoRef} 
-                    cameraError={cameraError} 
-                    emotion={emotion} 
-                    confidence={confidence} 
+                  <CameraFeed
+                    isMain={true}
+                    videoRef={videoRef}
+                    cameraError={cameraError}
+                    emotion={emotion}
+                    confidence={confidence}
                   />
                 </div>
               ) : (
@@ -418,7 +492,10 @@ export default function InterviewRoom() {
               <Rnd
                 default={{
                   x: 28,
-                  y: typeof window !== "undefined" ? window.innerHeight - 290 : 0,
+                  y:
+                    typeof window !== "undefined"
+                      ? window.innerHeight - 290
+                      : 0,
                   width: 340,
                   height: 210,
                 }}
@@ -435,12 +512,12 @@ export default function InterviewRoom() {
                   {isSwapped ? (
                     <AiAvatar isMain={false} isAiSpeaking={isAiSpeaking} />
                   ) : (
-                    <CameraFeed 
-                      isMain={false} 
-                      videoRef={videoRef} 
-                      cameraError={cameraError} 
-                      emotion={emotion} 
-                      confidence={confidence} 
+                    <CameraFeed
+                      isMain={false}
+                      videoRef={videoRef}
+                      cameraError={cameraError}
+                      emotion={emotion}
+                      confidence={confidence}
                     />
                   )}
                 </div>
@@ -460,11 +537,11 @@ export default function InterviewRoom() {
           </div>
 
           {/* RIGHT SIDE - TRANSCRIPT */}
-          <TranscriptPanel 
-            transcript={transcript} 
-            transcriptEndRef={transcriptEndRef} 
-            statusIcon={statusIcon} 
-            statusText={statusText} 
+          <TranscriptPanel
+            transcript={transcript}
+            transcriptEndRef={transcriptEndRef}
+            statusIcon={statusIcon}
+            statusText={statusText}
           />
         </div>
       </div>
