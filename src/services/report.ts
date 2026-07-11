@@ -2,7 +2,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function getInterviewReport(sessionId: string) {
     const token = localStorage.getItem("access_token");
-
+    console.log("Fetching report for session:", sessionId);
     if (!token) {
         throw new Error("User is not authenticated.");
     }

@@ -26,7 +26,8 @@ export default function UserDashboard() {
     async function loadDashboard() {
       try {
         const data = await getDashboard();
-
+        console.log("Dashboard data:", data);
+        console.log("Interview history:", data.interviewHistory);
         setUserProfile(data.userProfile);
 
         setInterviewHistory(data.interviewHistory);
@@ -47,6 +48,8 @@ export default function UserDashboard() {
   */
   const formattedHistory = interviewHistory.map((interview) => ({
     id: interview._id,
+    
+    sessionId: interview.session_id ?? "Unknown",
 
     role: interview.role ?? "Unknown",
 

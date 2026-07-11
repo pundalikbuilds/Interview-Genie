@@ -16,7 +16,8 @@ import { getInterviewReport } from "@/services/report";
 export default function InterviewResults() {
   const params = useParams();
 
-  const sessionId = params.sessionId as string;
+  const sessionId = params.id as string;
+  console.log("Session ID:", sessionId);
 
   const [resultData, setResultData] = useState<any>(null);
   const [loading, setLoading] = useState(true);

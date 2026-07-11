@@ -8,6 +8,7 @@ import { ScoreBar } from "./ScoreBar";
 
 export interface InterviewRecord {
   id: string;
+  sessionId: string;
   role: string;
   date: string;
   duration: string;
@@ -40,7 +41,7 @@ export function InterviewHistoryCard({
         {/* Role Title Row */}
         <div className="mb-4 flex items-center gap-3">
           <Briefcase className="h-4 w-4 text-neutral-400" />
-          <Link href="/results">
+          <Link href={`/feedback/${interview.sessionId}`}>
             <h3 className="text-xl font-bold text-neutral-800 hover:text-neutral-500 hover:underline transition-colors cursor-pointer">
               {interview.role}
             </h3>
