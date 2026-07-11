@@ -62,7 +62,7 @@ export default function InterviewSetupPage() {
       );
 
       const sessionId = res?.session_id;
-
+      console.log("Received session_id:", sessionId);
       if (!sessionId) {
         throw new Error("Backend did not return a session_id");
       }

@@ -52,8 +52,10 @@ export default function CameraPreview({
 }: CameraPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
   const [cameraAvailable, setCameraAvailable] = useState(true);
   const [micAvailable, setMicAvailable] = useState(true);
+  const [micPermissionDenied, setMicPermissionDenied] = useState(false);
 
   useEffect(() => {
     const startCamera = async () => {
@@ -103,6 +105,49 @@ export default function CameraPreview({
     return () => { stopCamera(); };
   }, [cameraEnabled]);
 
+  // ── Actually request mic permission when micEnabled becomes true ───────────
+  useEffect(() => {
+    const startMic = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        setMicAvailable(true);
+        setMicPermissionDenied(false);
+      } catch (error) {
+        const err = error as DOMException;
+        if (err.name === "NotAllowedError") {
+          console.warn("User denied mic permissions");
+          setMicPermissionDenied(true);
+        } else if (err.name === "NotFoundError") {
+          console.warn("No mic device found");
+          setMicAvailable(false);
+        } else {
+          console.warn("Mic error:", err);
+          setMicAvailable(false);
+        }
+        // Reset the toggle since we didn't actually get access
+        onMicToggle(false);
+      }
+    };
+
+    const stopMic = () => {
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((track) => track.stop());
+        micStreamRef.current = null;
+      }
+    };
+
+    if (micEnabled) {
+      startMic();
+    } else {
+      stopMic();
+    }
+
+    return () => { stopMic(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [micEnabled]);
+
+  // Check device presence up front (does not itself trigger a permission prompt)
   useEffect(() => {
     navigator.mediaDevices
       .enumerateDevices()
@@ -190,6 +235,12 @@ export default function CameraPreview({
           <div className="flex items-center gap-2 text-xs font-medium text-amber-700 px-4 py-3 bg-amber-50 rounded-lg border border-amber-200">
             <AlertCircle className="h-4 w-4" />
             <span>Microphone not found or permission denied.</span>
+          </div>
+        )}
+        {micPermissionDenied && (
+          <div className="flex items-center gap-2 text-xs font-medium text-red-700 px-4 py-3 bg-red-50 rounded-lg border border-red-200">
+            <AlertCircle className="h-4 w-4" />
+            <span>Microphone permission was denied. Please allow access in your browser settings and try again.</span>
           </div>
         )}
       </div>
