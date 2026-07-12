@@ -6,6 +6,9 @@ import { motion, useScroll, useTransform, type Variants } from 'framer-motion';
 import { PlayCircle, ArrowRight, Camera, Activity, Code2, LineChart } from 'lucide-react';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
+import { hasAccessToken } from "@/services/auth";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // Import new modular landing page components
 import { OutlineText } from '@/components/landing-page/OutlineText';
@@ -16,6 +19,7 @@ import { HeroInteractiveMockup } from '@/components/landing-page/HeroInteractive
 
 export default function Home() {
   const heroRef = useRef(null);
+  const router = useRouter();
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
@@ -45,6 +49,12 @@ export default function Home() {
     hidden: { opacity: 0, y: 30 },
     show:   { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } },
   };
+
+  useEffect(() => {
+  if (hasAccessToken()) {
+    router.replace("/dashboard");
+  }
+}, [router]);
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
@@ -90,7 +100,7 @@ export default function Home() {
               className="flex gap-4"
             >
               <Link
-                href="/interview-setup"
+                href="/signup"
                 className="group px-8 py-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl flex items-center gap-3 transition-all hover:pl-10 shadow-lg shadow-neutral-200"
               >
                 Start Mock Interview

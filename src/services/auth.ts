@@ -78,3 +78,7 @@ export async function signin(
 
   return await response.json();
 }
+
+export function hasAccessToken(): boolean {
+  return !!localStorage.getItem("access_token");
+}
