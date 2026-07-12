@@ -47,13 +47,15 @@ export default function InterviewResults() {
           },
 
           questions: report.evaluatedAnswers.map((qa: any) => ({
-            question: qa.question,
-            answer: qa.answer,
-            evaluation: {
-              score: qa.score,
-              feedback: qa.feedback,
-              category: qa.category,
-            },
+          question: qa.question,
+          answer: qa.answer,
+          evaluation: {
+            score: qa.score,
+            feedback: qa.feedback,
+            category: qa.category,
+            correct_points: qa.correct_points ?? [],
+            missing_points: qa.missing_points ?? [],
+          },  
           })),
 
           report: {

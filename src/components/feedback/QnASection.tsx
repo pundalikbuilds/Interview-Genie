@@ -12,8 +12,12 @@ interface Question {
     score: number;
     feedback: string;
     category: string;
+    correct_points: string[];
+    missing_points: string[];
   };
-}
+
+  };
+
 
 function QuestionCard({ q, index }: { q: Question; index: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -77,6 +81,45 @@ function QuestionCard({ q, index }: { q: Question; index: number }) {
             <p className="text-neutral-700 leading-relaxed text-sm">
               {q.evaluation.feedback}
             </p>
+          </div>
+          {/* Correct Points */}
+          <div className="mt-4 rounded-xl bg-green-50 p-4 border border-green-100">
+            <h4 className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2">
+              Correct Points
+            </h4>
+
+            {q.evaluation.correct_points &&
+            q.evaluation.correct_points.length > 0 ? (
+              <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
+                {q.evaluation.correct_points.map((point, i) => (
+                  <li key={i}>{point}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-neutral-500 italic">
+                No correct points were identified.
+              </p>
+            )}
+          </div>
+
+          {/* Missing Points */}
+          <div className="mt-4 rounded-xl bg-red-50 p-4 border border-red-100">
+            <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider mb-2">
+              Missing Points
+            </h4>
+
+            {q.evaluation.missing_points &&
+            q.evaluation.missing_points.length > 0 ? (
+              <ul className="list-disc list-inside space-y-1 text-sm text-neutral-700">
+                {q.evaluation.missing_points.map((point, i) => (
+                  <li key={i}>{point}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-neutral-500 italic">
+                No missing points were identified.
+              </p>
+            )}
           </div>
         </motion.div>
       )}
