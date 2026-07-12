@@ -117,7 +117,7 @@ export default function InterviewResults() {
           </div>
 
           <Link
-            href="/"
+            href="/dashboard"
             className="flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all"
           >
             <Home className="w-4 h-4" />
