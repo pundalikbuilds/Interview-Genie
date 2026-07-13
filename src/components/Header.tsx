@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut } from "lucide-react";
 
@@ -34,6 +34,8 @@ export function Header() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const isOnDashboard = pathname === "/dashboard";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -137,13 +139,15 @@ export function Header() {
                         {user.email}
                       </p>
                     </div>
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setIsProfileOpen(false)}
-                      className="block px-4 py-2.5 text-sm text-foreground/80 hover:bg-foreground/5 transition-colors"
-                    >
-                      Dashboard
-                    </Link>
+                    {!isOnDashboard && (
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="block px-4 py-2.5 text-sm text-foreground/80 hover:bg-foreground/5 transition-colors"
+                      >
+                        Dashboard
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-foreground/80 hover:bg-foreground/5 transition-colors text-left"
@@ -241,11 +245,13 @@ export function Header() {
           >
             {user ? (
               <>
-                <Link href="/dashboard" className="flex-1" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full rounded-full h-14 text-base">
-                    Dashboard
-                  </Button>
-                </Link>
+                {!isOnDashboard && (
+                  <Link href="/dashboard" className="flex-1" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full rounded-full h-14 text-base">
+                      Dashboard
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   className="flex-1 bg-foreground text-background rounded-full h-14 text-base"
                   onClick={handleLogout}
