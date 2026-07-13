@@ -8,7 +8,7 @@ interface CameraFeedProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   cameraError: string | null;
   emotion: string;
-  confidence: number;
+  emotionLabel: string;
 }
 
 export function CameraFeed({
@@ -16,7 +16,7 @@ export function CameraFeed({
   videoRef,
   cameraError,
   emotion,
-  confidence,
+  emotionLabel,
 }: CameraFeedProps) {
   return (
     <div className="relative h-full w-full bg-neutral-900 flex items-center justify-center">
@@ -38,9 +38,11 @@ export function CameraFeed({
               }`}
             >
               <div className="font-semibold capitalize">{emotion}</div>
-              <div className="text-xs text-neutral-300">
-                {(confidence * 100).toFixed(1)}% confidence
-              </div>
+              {emotionLabel && (
+                <div className="text-xs text-neutral-300 capitalize">
+                  {emotionLabel} confidence
+                </div>
+              )}
             </div>
           )}
         </>

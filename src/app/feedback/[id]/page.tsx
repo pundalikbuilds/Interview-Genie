@@ -60,7 +60,7 @@ export default function InterviewResults() {
 
           report: {
             overall_score: report.overallScore,
-            confidence_score: report.confidenceValue,
+            confidence_label: report.confidenceLabel,
             overall_feedback: report.overallFeedback,
             skills: report.skillsFeedback,
           },

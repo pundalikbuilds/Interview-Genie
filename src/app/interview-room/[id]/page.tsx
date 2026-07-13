@@ -47,7 +47,7 @@ export default function InterviewRoom() {
   const [isStartingInterview, setIsStartingInterview] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [emotion, setEmotion] = useState("");
-  const [confidence, setConfidence] = useState(0);
+  const [emotionLabel, setEmotionLabel] = useState("");
   const [predictionError, setPredictionError] = useState<string | null>(null);
   const [isClientMounted, setIsClientMounted] = useState(false);
   const [isSwapped, setIsSwapped] = useState(false);
@@ -122,12 +122,12 @@ export default function InterviewRoom() {
   // ── Video emotion handler ──────────────────────────────────────────────────
   const handleVideoMessage = async (message: {
     emotion?: string;
-    confidence?: number;
+    confidence_label?: string;
   }) => {
     setIsStartingInterview(false);
     if (typeof message.emotion === "string") setEmotion(message.emotion);
-    if (typeof message.confidence === "number")
-      setConfidence(message.confidence);
+    if (typeof message.confidence_label === "string")
+      setEmotionLabel(message.confidence_label);
   };
 
   const captureAndSendFrame = async (client: VideoStreamClient) => {
@@ -480,7 +480,7 @@ export default function InterviewRoom() {
                     videoRef={videoRef}
                     cameraError={cameraError}
                     emotion={emotion}
-                    confidence={confidence}
+                    emotionLabel={emotionLabel}
                   />
                 </div>
               ) : (
@@ -517,7 +517,7 @@ export default function InterviewRoom() {
                       videoRef={videoRef}
                       cameraError={cameraError}
                       emotion={emotion}
-                      confidence={confidence}
+                      emotionLabel={emotionLabel}
                     />
                   )}
                 </div>
