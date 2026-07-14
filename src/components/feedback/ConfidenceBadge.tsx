@@ -1,40 +1,40 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { Smile, Meh, Frown } from "lucide-react";
 
 export type ConfidenceLevel = "high" | "medium" | "low";
 
 interface ConfidenceConfigEntry {
   label: string;
-  icon: React.ElementType;
   color: string;
   bg: string;
-  ring: string;
+  src: string;
 }
 
+// NOTE: place these three files at:
+//   Interview-Genie/public/icons/confidence/high-confidence.svg
+//   Interview-Genie/public/icons/confidence/medium-confidence.svg
+//   Interview-Genie/public/icons/confidence/low-confidence.svg
 const CONFIDENCE_CONFIG: { [key in ConfidenceLevel]: ConfidenceConfigEntry } = {
   high: {
     label: "High Confidence",
-    icon: Smile,
     color: "text-emerald-700",
     bg: "bg-emerald-50",
-    ring: "border-emerald-200",
+    src: "/icons/confidence/high-confidence.svg",
   },
   medium: {
     label: "Medium Confidence",
-    icon: Meh,
     color: "text-amber-700",
     bg: "bg-amber-50",
-    ring: "border-amber-200",
+    src: "/icons/confidence/medium-confidence.svg",
   },
   low: {
     label: "Low Confidence",
-    icon: Frown,
     color: "text-red-700",
     bg: "bg-red-50",
-    ring: "border-red-200",
+    src: "/icons/confidence/low-confidence.svg",
   },
 };
 
@@ -47,14 +47,13 @@ export function normalizeConfidenceLevel(value: string): ConfidenceLevel {
 
 export function ConfidenceBadge({
   level,
-  size = 120,
+  size = 140,
 }: {
   level: string;
   size?: number;
 }) {
   const normalized = normalizeConfidenceLevel(level);
   const config = CONFIDENCE_CONFIG[normalized];
-  const Icon = config.icon;
 
   return (
     <div className="flex flex-col items-center">
@@ -62,13 +61,20 @@ export function ConfidenceBadge({
         initial={{ opacity: 0, scale: 0.6 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-        className={`flex items-center justify-center rounded-full border-2 ${config.bg} ${config.ring}`}
+        // Each source SVG has a different intrinsic viewBox (428x582, 412x602,
+        // 396x587) with a near-white baked-in background rect. Fixing the
+        // wrapper to a square and using object-contain keeps all three
+        // visually consistent regardless of their native aspect ratio.
+        className="relative flex items-center justify-center shrink-0 overflow-hidden rounded-2xl"
         style={{ width: size, height: size }}
       >
-        <Icon
-          className={config.color}
-          style={{ width: size * 0.42, height: size * 0.42 }}
-          strokeWidth={1.75}
+        <Image
+          src={config.src}
+          alt={config.label}
+          fill
+          sizes={`${size}px`}
+          style={{ objectFit: "contain" }}
+          priority
         />
       </motion.div>
 

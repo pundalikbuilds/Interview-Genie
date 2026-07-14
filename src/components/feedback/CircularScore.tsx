@@ -12,6 +12,65 @@ export function getScoreLabel(score: number): string {
   return "Very Poor";
 }
 
+interface ScoreColorConfig {
+  stroke: string;
+  text: string;
+  badgeBg: string;
+  badgeText: string;
+}
+
+export function getScoreColor(score: number): ScoreColorConfig {
+  if (score >= 90) {
+    // Excellent = green
+    return {
+      stroke: "#16a34a",
+      text: "#16a34a",
+      badgeBg: "bg-green-50",
+      badgeText: "text-green-700",
+    };
+  } else if (score >= 80) {
+    // Very Good = light green
+    return {
+      stroke: "#4ade80",
+      text: "#4ade80",
+      badgeBg: "bg-green-50",
+      badgeText: "text-green-600",
+    };
+  } else if (score >= 70) {
+    // Good = yellow
+    return {
+      stroke: "#eab308",
+      text: "#eab308",
+      badgeBg: "bg-yellow-50",
+      badgeText: "text-yellow-700",
+    };
+  } else if (score >= 60) {
+    // Average = light yellow
+    return {
+      stroke: "#fde047",
+      text: "#fde047",
+      badgeBg: "bg-yellow-50",
+      badgeText: "text-yellow-600",
+    };
+  } else if (score >= 40) {
+    // Poor = red
+    return {
+      stroke: "#dc2626",
+      text: "#dc2626",
+      badgeBg: "bg-red-50",
+      badgeText: "text-red-700",
+    };
+  } else {
+    // Very Poor = dark red
+    return {
+      stroke: "#7f1d1d",
+      text: "#7f1d1d",
+      badgeBg: "bg-red-50",
+      badgeText: "text-red-900",
+    };
+  }
+}
+
 export function CircularScore({
   score,
   size = 100,
@@ -27,6 +86,7 @@ export function CircularScore({
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (clampedScore / 100) * circumference;
+  const colors = getScoreColor(clampedScore);
 
   return (
     <div className="flex flex-col items-center">
@@ -48,14 +108,13 @@ export function CircularScore({
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="currentColor"
+            stroke={colors.stroke}
             strokeWidth={strokeWidth}
             fill="transparent"
             strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: offset }}
             transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
-            className="text-neutral-900"
             strokeLinecap="round"
           />
         </svg>
@@ -63,7 +122,8 @@ export function CircularScore({
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.8, duration: 0.5 }}
-          className="text-2xl font-bold text-neutral-900"
+          className="text-2xl font-bold"
+          style={{ color: colors.text }}
         >
           {clampedScore}
         </motion.span>
@@ -74,7 +134,7 @@ export function CircularScore({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1, duration: 0.4 }}
-          className="mt-3 text-xs font-bold uppercase tracking-widest text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full"
+          className={`mt-3 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full ${colors.badgeBg} ${colors.badgeText}`}
         >
           {getScoreLabel(clampedScore)}
         </motion.span>
