@@ -48,7 +48,7 @@ export default function UserDashboard() {
   */
   const formattedHistory = interviewHistory.map((interview) => ({
     id: interview._id,
-    
+
     sessionId: interview.session_id ?? "Unknown",
 
     role: interview.role ?? "Unknown",
@@ -59,7 +59,7 @@ export default function UserDashboard() {
 
     overallScore: interview.overall_score ?? 0,
 
-    confidenceScore: interview.confidence_score ?? 0,
+    confidenceLabel: interview.confidence_label ?? "unknown",
 
     overallFeedback: interview.overall_feedback ?? "",
   }));

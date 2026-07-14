@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Briefcase, Calendar, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { ScoreBar } from "./ScoreBar";
+import { ConfidenceSegments } from "./ConfidenceSegments";
 
 export interface InterviewRecord {
   id: string;
@@ -13,7 +14,7 @@ export interface InterviewRecord {
   date: string;
   duration: string;
   overallScore: number;
-  confidenceScore: number;
+  confidenceLabel: string; // "low_confidence" | "medium_confidence" | "high_confidence"
   overallFeedback: string;
 }
 
@@ -24,11 +25,11 @@ interface InterviewHistoryCardProps {
   onToggle: () => void;
 }
 
-export function InterviewHistoryCard({ 
-  interview, 
-  index, 
-  isExpanded, 
-  onToggle 
+export function InterviewHistoryCard({
+  interview,
+  index,
+  isExpanded,
+  onToggle,
 }: InterviewHistoryCardProps) {
   return (
     <motion.div
@@ -63,16 +64,16 @@ export function InterviewHistoryCard({
           </div>
         </div>
 
-        {/* Duration and Confidence Score Row */}
+        {/* Duration and Confidence Row */}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center">
           <div className="flex w-full items-center gap-3 text-sm text-neutral-600 md:w-[280px] md:shrink-0">
             <Clock className="h-4 w-4 text-neutral-400" />
             <span>{interview.duration}</span>
           </div>
           <div className="w-full flex-1">
-            <ScoreBar
+            <ConfidenceSegments
               label="Confidence"
-              score={interview.confidenceScore}
+              level={interview.confidenceLabel}
               delay={0.3 + index * 0.1}
             />
           </div>
