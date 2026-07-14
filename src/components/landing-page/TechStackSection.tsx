@@ -53,7 +53,7 @@ export function TechStackSection() {
       </motion.div>
 
       {/* Row 1: Frontend (Right to Left) */}
-      <div className="w-full mb-6 flex overflow-hidden">
+      <div className="w-full mb-6 flex overflow-x-hidden py-1">
         <motion.div
           className="flex gap-6 whitespace-nowrap px-3 will-change-transform"
           animate={{ x: ["0%", "-50%"] }}
@@ -76,7 +76,7 @@ export function TechStackSection() {
       </div>
 
       {/* Row 2: Backend / AI (Left to Right) */}
-      <div className="w-full flex overflow-hidden">
+      <div className="w-full flex overflow-x-hidden py-1">
         <motion.div
           className="flex gap-6 whitespace-nowrap px-3 will-change-transform"
           animate={{ x: ["-50%", "0%"] }}
