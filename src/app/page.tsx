@@ -6,9 +6,10 @@ import { motion, useScroll, useTransform, type Variants } from 'framer-motion';
 import { PlayCircle, ArrowRight, Camera, Activity, Code2, LineChart } from 'lucide-react';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
-import { hasAccessToken } from "@/services/auth";
+import { validateSession } from "@/services/auth";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+
 
 // Import new modular landing page components
 import { OutlineText } from '@/components/landing-page/OutlineText';
@@ -51,9 +52,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-  if (hasAccessToken()) {
-    router.replace("/dashboard");
-  }
+    async function checkSession() {
+        if (await validateSession()) {
+            router.replace("/dashboard");
+        }
+    }
+
+    checkSession();
 }, [router]);
 
   return (

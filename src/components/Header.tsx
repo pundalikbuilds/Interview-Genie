@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut } from "lucide-react";
+import { validateSession } from "@/services/auth";
 
 interface NavLink {
   name: string;
@@ -47,21 +48,19 @@ export function Header() {
   }, []);
 
   // Load logged-in user from localStorage (set on signin/signup)
-  useEffect(() => {
-    const loadUser = () => {
-      try {
-        const raw = window.localStorage.getItem("user");
-        setUser(raw ? JSON.parse(raw) : null);
-      } catch {
-        setUser(null);
-      }
-    };
-    loadUser();
+ useEffect(() => {
+    async function loadUser() {
+        if (!(await validateSession())) {
+            setUser(null);
+            return;
+        }
 
-    // keep in sync if another tab logs in/out
-    window.addEventListener("storage", loadUser);
-    return () => window.removeEventListener("storage", loadUser);
-  }, []);
+        const raw = localStorage.getItem("user");
+        setUser(raw ? JSON.parse(raw) : null);
+    }
+
+    loadUser();
+}, []);
 
   const handleLogout = () => {
     window.localStorage.removeItem("access_token");

@@ -82,3 +82,24 @@ export async function signin(
 export function hasAccessToken(): boolean {
   return !!localStorage.getItem("access_token");
 }
+export async function validateSession(): Promise<boolean> {
+  const token = localStorage.getItem("access_token");
+
+  if (!token) {
+    return false;
+  }
+
+  const response = await fetch(`${API_URL}/api/dashboard`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (response.status === 401 || response.status === 404) {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
+    return false;
+  }
+
+  return response.ok;
+}
