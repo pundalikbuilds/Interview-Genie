@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { UserProfileCard } from "@/components/dashboard/UserProfileCard";
 import { InterviewHistoryList } from "@/components/dashboard/InterviewHistoryList";
-import { getDashboard } from "@/services/dashboard";
+import { getDashboard, deleteDashboardInterview } from "@/services/dashboard"; // deleteDashboardInterview: NEW import
 
 interface UserProfile {
   id: string;
@@ -64,6 +64,21 @@ export default function UserDashboard() {
     overallFeedback: interview.overall_feedback ?? "",
   }));
 
+  // ── NEW ──────────────────────────────────────────────────────────────
+  // Calls the backend to delete the interview, then updates local state
+  // so the card disappears and the profile's interview count stays in sync
+  // without needing to refetch the whole dashboard.
+  const handleDelete = async (sessionId: string) => {
+    await deleteDashboardInterview(sessionId);
+    setInterviewHistory((prev) =>
+      prev.filter((interview) => (interview.session_id ?? "Unknown") !== sessionId)
+    );
+    setUserProfile((prev) =>
+      prev ? { ...prev, totalInterviews: Math.max(0, prev.totalInterviews - 1) } : prev
+    );
+  };
+  // ── END NEW ────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -102,7 +117,8 @@ export default function UserDashboard() {
             <UserProfileCard userProfile={userProfile} />
           </div>
 
-          <InterviewHistoryList history={formattedHistory} />
+          {/* onDelete: NEW prop passed down to enable per-card delete */}
+          <InterviewHistoryList history={formattedHistory} onDelete={handleDelete} />
         </div>
       </main>
     </div>

@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion"; // AnimatePresence: NEW import, enables exit animation on delete
 import { User as UserIcon } from "lucide-react";
 import { InterviewHistoryCard, type InterviewRecord } from "./InterviewHistoryCard";
 
 interface InterviewHistoryListProps {
   history: InterviewRecord[];
+  onDelete: (sessionId: string) => Promise<void>; // NEW prop
 }
 
-export function InterviewHistoryList({ history }: InterviewHistoryListProps) {
+export function InterviewHistoryList({ history, onDelete }: InterviewHistoryListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
@@ -27,15 +28,19 @@ export function InterviewHistoryList({ history }: InterviewHistoryListProps) {
       </motion.div>
 
       <div className="flex flex-col gap-6">
-        {history.map((interview, index) => (
-          <InterviewHistoryCard
-            key={interview.id}
-            interview={interview}
-            index={index}
-            isExpanded={expandedId === interview.id}
-            onToggle={() => setExpandedId(expandedId === interview.id ? null : interview.id)}
-          />
-        ))}
+        {/* AnimatePresence wrapper: NEW — lets cards animate out smoothly on delete */}
+        <AnimatePresence>
+          {history.map((interview, index) => (
+            <InterviewHistoryCard
+              key={interview.id}
+              interview={interview}
+              index={index}
+              isExpanded={expandedId === interview.id}
+              onToggle={() => setExpandedId(expandedId === interview.id ? null : interview.id)}
+              onDelete={onDelete} // NEW: passed through to the card
+            />
+          ))}
+        </AnimatePresence>
       </div>
 
       {history.length === 0 && (
