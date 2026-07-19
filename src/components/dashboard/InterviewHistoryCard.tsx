@@ -1,20 +1,20 @@
 "use client";
 
-import React, { useState } from "react"; // useState: NEW import
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Briefcase, Calendar, Clock, ChevronDown, ChevronUp, Trash2, Loader2 } from "lucide-react"; // Trash2, Loader2: NEW imports
+import { Briefcase, Calendar, Clock, ChevronDown, ChevronUp, Trash2, Loader2, AlertCircle } from "lucide-react";
 import { ScoreBar } from "./ScoreBar";
 import { ConfidenceSegments } from "./ConfidenceSegments";
 
 export interface InterviewRecord {
   id: string;
-  sessionId: string; // "low_confidence" | "medium_confidence" | "high_confidence" (kept from original comment context on confidenceLabel below)
+  sessionId: string;
   role: string;
   date: string;
   duration: string;
   overallScore: number;
-  confidenceLabel: string; // "low_confidence" | "medium_confidence" | "high_confidence"
+  confidenceLabel: string;
   overallFeedback: string;
 }
 
@@ -23,7 +23,7 @@ interface InterviewHistoryCardProps {
   index: number;
   isExpanded: boolean;
   onToggle: () => void;
-  onDelete: (sessionId: string) => Promise<void>; // NEW prop
+  onDelete: (sessionId: string) => Promise<void>;
 }
 
 export function InterviewHistoryCard({
@@ -31,10 +31,8 @@ export function InterviewHistoryCard({
   index,
   isExpanded,
   onToggle,
-  onDelete, // NEW
+  onDelete,
 }: InterviewHistoryCardProps) {
-  // ── NEW ──────────────────────────────────────────────────────────────
-  // Two-step confirm: first click arms the button, second click deletes.
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,29 +46,26 @@ export function InterviewHistoryCard({
     setError(null);
     try {
       await onDelete(interview.sessionId);
-      // Card unmounts once parent removes it from history; nothing else to do.
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete interview.");
       setDeleting(false);
       setConfirming(false);
     }
   };
-  // ── END NEW ────────────────────────────────────────────────────────
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0, marginBottom: 0 }} // exit prop: NEW, works with AnimatePresence in the list
+      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
       transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
       className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-[0_12px_30px_rgba(0,0,0,0.06)]"
     >
       <div className="flex flex-col">
         {/* Role Title Row */}
-        {/* justify-between added here (NEW) to make room for the delete button */}
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Briefcase className="h-4 w-4 text-neutral-400" />
+            <Briefcase className="h-5 w-5 text-neutral-400" />
             <Link href={`/feedback/${interview.sessionId}`}>
               <h3 className="text-xl font-bold text-neutral-800 hover:text-neutral-500 hover:underline transition-colors cursor-pointer">
                 {interview.role}
@@ -78,24 +73,26 @@ export function InterviewHistoryCard({
             </Link>
           </div>
 
-          {/* ── NEW: Delete Button ── */}
+          {/* ── UPDATED: Polished Delete Button UI ── */}
           <button
             onClick={handleDeleteClick}
             disabled={deleting}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               confirming
-                ? "bg-red-600 text-white hover:bg-red-700"
+                ? "bg-red-500 text-white shadow-sm ring-4 ring-red-500/20 hover:bg-red-600"
                 : "text-neutral-400 hover:bg-red-50 hover:text-red-600"
             }`}
           >
             {deleting ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             )}
-            {deleting ? "Deleting..." : confirming ? "Confirm delete" : "Delete"}
+            <span>
+              {deleting ? "Deleting..." : confirming ? "Click to confirm" : "Delete"}
+            </span>
           </button>
-          {/* ── END NEW ── */}
+          {/* ── END UPDATED ── */}
         </div>
 
         {/* Date and Overall Score Row */}
@@ -128,24 +125,32 @@ export function InterviewHistoryCard({
           </div>
         </div>
 
-        {/* ── NEW: error message + confirm/cancel hint ── */}
+        {/* ── UPDATED: Error message & Cancel hint UI ── */}
         {error && (
-          <p className="mb-4 text-xs font-medium text-red-600">{error}</p>
+          <div className="mb-4 flex items-center gap-2 rounded-md bg-red-50 p-2.5 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            <p className="font-medium">{error}</p>
+          </div>
         )}
 
-        {confirming && !deleting && (
-          <p className="mb-4 text-xs text-neutral-500">
-            Click "Confirm delete" again to permanently remove this interview, or{" "}
-            <button
-              onClick={() => setConfirming(false)}
-              className="font-semibold text-neutral-700 underline"
-            >
-              cancel
-            </button>
-            .
-          </p>
+        {confirming && !deleting && !error && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: "auto" }} 
+            className="mb-4 flex items-center gap-2 text-sm text-neutral-500"
+          >
+            <p>
+              Are you sure? This cannot be undone.{" "}
+              <button
+                onClick={() => setConfirming(false)}
+                className="font-semibold text-neutral-700 underline hover:text-neutral-900 transition-colors"
+              >
+                Cancel
+              </button>
+            </p>
+          </motion.div>
         )}
-        {/* ── END NEW ── */}
+        {/* ── END UPDATED ── */}
 
         {/* Action Button Row */}
         <div>
