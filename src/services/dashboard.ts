@@ -16,7 +16,7 @@ export async function getDashboard() {
   return await response.json();
 }
 
-// ── NEW ────────────────────────────────────────────────────────────────
+
 export async function deleteDashboardInterview(sessionId: string) {
   const token = localStorage.getItem("access_token");
 
@@ -38,4 +38,3 @@ export async function deleteDashboardInterview(sessionId: string) {
 
   return response.json();
 }
-// ── END NEW ──────────────────────────────────────────────────────────

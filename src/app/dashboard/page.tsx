@@ -64,20 +64,27 @@ export default function UserDashboard() {
     overallFeedback: interview.overall_feedback ?? "",
   }));
 
-  // ── NEW ──────────────────────────────────────────────────────────────
-  // Calls the backend to delete the interview, then updates local state
-  // so the card disappears and the profile's interview count stays in sync
-  // without needing to refetch the whole dashboard.
+
   const handleDelete = async (sessionId: string) => {
-    await deleteDashboardInterview(sessionId);
+    const response = await deleteDashboardInterview(sessionId);
+
+    if (!response.success) {
+      throw new Error(response.message);
+    }
+
     setInterviewHistory((prev) =>
-      prev.filter((interview) => (interview.session_id ?? "Unknown") !== sessionId)
+      prev.filter((interview) => interview.session_id !== sessionId),
     );
+
     setUserProfile((prev) =>
-      prev ? { ...prev, totalInterviews: Math.max(0, prev.totalInterviews - 1) } : prev
+      prev
+        ? {
+            ...prev,
+            totalInterviews: Math.max(0, prev.totalInterviews - 1),
+          }
+        : prev,
     );
   };
-  // ── END NEW ────────────────────────────────────────────────────────
 
   if (loading) {
     return (
