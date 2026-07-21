@@ -10,7 +10,7 @@ interface ScoreBarProps {
 }
 
 export function ScoreBar({ label, score, delay = 0 }: ScoreBarProps) {
-  const clampedScore = Math.max(0, Math.min(100, score));
+  const clampedScore = Math.max(0, Math.min(10, score));
 
   return (
     <div className="flex items-center gap-4">
@@ -20,7 +20,7 @@ export function ScoreBar({ label, score, delay = 0 }: ScoreBarProps) {
       <div className="relative h-3 flex-1 min-w-[220px] overflow-hidden rounded-full bg-neutral-100">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: `${clampedScore}%` }}
+          animate={{ width: `${clampedScore * 10}%` }}
           transition={{ duration: 1, ease: "easeOut", delay }}
           className="h-full rounded-full bg-neutral-900"
         />

@@ -4,11 +4,11 @@ import React from "react";
 import { motion } from "framer-motion";
 
 export function getScoreLabel(score: number): string {
-  if (score >= 90) return "Excellent";
-  if (score >= 80) return "Very Good";
-  if (score >= 70) return "Good";
-  if (score >= 60) return "Average";
-  if (score >= 40) return "Poor";
+  if (score >= 9) return "Excellent";
+  if (score >= 8) return "Very Good";
+  if (score >= 7) return "Good";
+  if (score >= 6) return "Average";
+  if (score >= 4) return "Poor";
   return "Very Poor";
 }
 
@@ -20,7 +20,7 @@ interface ScoreColorConfig {
 }
 
 export function getScoreColor(score: number): ScoreColorConfig {
-  if (score >= 90) {
+  if (score >= 9) {
     // Excellent = green
     return {
       stroke: "#16a34a",
@@ -28,7 +28,7 @@ export function getScoreColor(score: number): ScoreColorConfig {
       badgeBg: "bg-green-50",
       badgeText: "text-green-700",
     };
-  } else if (score >= 80) {
+  } else if (score >= 8) {
     // Very Good = light green
     return {
       stroke: "#4ade80",
@@ -36,7 +36,7 @@ export function getScoreColor(score: number): ScoreColorConfig {
       badgeBg: "bg-green-50",
       badgeText: "text-green-600",
     };
-  } else if (score >= 70) {
+  } else if (score >= 7) {
     // Good = yellow
     return {
       stroke: "#eab308",
@@ -44,7 +44,7 @@ export function getScoreColor(score: number): ScoreColorConfig {
       badgeBg: "bg-yellow-50",
       badgeText: "text-yellow-700",
     };
-  } else if (score >= 60) {
+  } else if (score >= 6) {
     // Average = light yellow
     return {
       stroke: "#fde047",
@@ -52,7 +52,7 @@ export function getScoreColor(score: number): ScoreColorConfig {
       badgeBg: "bg-yellow-50",
       badgeText: "text-yellow-600",
     };
-  } else if (score >= 40) {
+  } else if (score >= 4) {
     // Poor = red
     return {
       stroke: "#dc2626",
@@ -73,7 +73,7 @@ export function getScoreColor(score: number): ScoreColorConfig {
 
 export function CircularScore({
   score,
-  size = 100,
+  size = 10,
   strokeWidth = 8,
   showLabel = false,
 }: {
@@ -82,10 +82,10 @@ export function CircularScore({
   strokeWidth?: number;
   showLabel?: boolean;
 }) {
-  const clampedScore = Math.max(0, Math.min(100, score));
+  const clampedScore = Math.max(0, Math.min(10, score));
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (clampedScore / 100) * circumference;
+  const offset = circumference - (clampedScore / 10) * circumference;
   const colors = getScoreColor(clampedScore);
 
   return (
