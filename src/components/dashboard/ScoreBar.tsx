@@ -11,6 +11,9 @@ interface ScoreBarProps {
 
 export function ScoreBar({ label, score, delay = 0 }: ScoreBarProps) {
   const clampedScore = Math.max(0, Math.min(10, score));
+  const displayScore = Number.isInteger(clampedScore)
+    ? clampedScore
+    : clampedScore.toFixed(1);
 
   return (
     <div className="flex items-center gap-4">
@@ -26,7 +29,7 @@ export function ScoreBar({ label, score, delay = 0 }: ScoreBarProps) {
         />
       </div>
       <span className="w-10 shrink-0 rounded-md border border-neutral-200 bg-white px-1.5 py-0.5 text-center text-sm font-semibold text-neutral-800">
-        {clampedScore}
+        {displayScore}
       </span>
     </div>
   );

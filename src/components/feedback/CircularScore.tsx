@@ -21,59 +21,23 @@ interface ScoreColorConfig {
 
 export function getScoreColor(score: number): ScoreColorConfig {
   if (score >= 9) {
-    // Excellent = green
-    return {
-      stroke: "#16a34a",
-      text: "#16a34a",
-      badgeBg: "bg-green-50",
-      badgeText: "text-green-700",
-    };
+    return { stroke: "#16a34a", text: "#16a34a", badgeBg: "bg-green-50", badgeText: "text-green-700" };
   } else if (score >= 8) {
-    // Very Good = light green
-    return {
-      stroke: "#4ade80",
-      text: "#4ade80",
-      badgeBg: "bg-green-50",
-      badgeText: "text-green-600",
-    };
+    return { stroke: "#4ade80", text: "#4ade80", badgeBg: "bg-green-50", badgeText: "text-green-600" };
   } else if (score >= 7) {
-    // Good = yellow
-    return {
-      stroke: "#eab308",
-      text: "#eab308",
-      badgeBg: "bg-yellow-50",
-      badgeText: "text-yellow-700",
-    };
+    return { stroke: "#eab308", text: "#eab308", badgeBg: "bg-yellow-50", badgeText: "text-yellow-700" };
   } else if (score >= 6) {
-    // Average = light yellow
-    return {
-      stroke: "#fde047",
-      text: "#fde047",
-      badgeBg: "bg-yellow-50",
-      badgeText: "text-yellow-600",
-    };
+    return { stroke: "#fde047", text: "#fde047", badgeBg: "bg-yellow-50", badgeText: "text-yellow-600" };
   } else if (score >= 4) {
-    // Poor = red
-    return {
-      stroke: "#dc2626",
-      text: "#dc2626",
-      badgeBg: "bg-red-50",
-      badgeText: "text-red-700",
-    };
+    return { stroke: "#dc2626", text: "#dc2626", badgeBg: "bg-red-50", badgeText: "text-red-700" };
   } else {
-    // Very Poor = dark red
-    return {
-      stroke: "#7f1d1d",
-      text: "#7f1d1d",
-      badgeBg: "bg-red-50",
-      badgeText: "text-red-900",
-    };
+    return { stroke: "#7f1d1d", text: "#7f1d1d", badgeBg: "bg-red-50", badgeText: "text-red-900" };
   }
 }
 
 export function CircularScore({
   score,
-  size = 10,
+  size = 100,
   strokeWidth = 8,
   showLabel = false,
 }: {
@@ -82,7 +46,13 @@ export function CircularScore({
   strokeWidth?: number;
   showLabel?: boolean;
 }) {
+  // Keep the precise float for geometry, color mapping, and label thresholds —
+  // only round for the number shown on screen.
   const clampedScore = Math.max(0, Math.min(10, score));
+  const displayScore = Number.isInteger(clampedScore)
+    ? clampedScore
+    : clampedScore.toFixed(1);
+
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (clampedScore / 10) * circumference;
@@ -125,7 +95,7 @@ export function CircularScore({
           className="text-2xl font-bold"
           style={{ color: colors.text }}
         >
-          {clampedScore}
+          {displayScore}
         </motion.span>
       </div>
 
